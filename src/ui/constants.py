@@ -32,17 +32,17 @@ CHART_COLORS = [
 # Цвета фона (тёмная тема)
 BG_CARD = (
     ft.Colors.SURFACE_CONTAINER_LOW
-    if hasattr(ft.colors, "SURFACE_CONTAINER_LOW")
+    if hasattr(ft.Colors, "SURFACE_CONTAINER_LOW")
     else ft.Colors.SURFACE_VARIANT
-    if hasattr(ft.colors, "SURFACE_VARIANT")
+    if hasattr(ft.Colors, "SURFACE_VARIANT")
     else ft.Colors.GREY_900
 )
 BG_CARD_HOVER = (
     ft.Colors.SURFACE_CONTAINER_HIGH
-    if hasattr(ft.colors, "SURFACE_CONTAINER_HIGH")
+    if hasattr(ft.Colors, "SURFACE_CONTAINER_HIGH")
     else ft.Colors.SURFACE_VARIANT
-    if hasattr(ft.colors, "SURFACE_VARIANT")
+    if hasattr(ft.Colors, "SURFACE_VARIANT")
     else ft.Colors.GREY_800
 )
-BG_DARK = ft.Colors.BACKGROUND if hasattr(ft.colors, "BACKGROUND") else ft.Colors.BLACK
+BG_DARK = ft.Colors.BACKGROUND if hasattr(ft.Colors, "BACKGROUND") else ft.Colors.BLACK
 BG_TODAY = ft.Colors.BLUE_900
