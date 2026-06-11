@@ -19,30 +19,30 @@ SORT_PRIORITY = "Приоритет"
 
 # Цвета диаграмм
 CHART_COLORS = [
-    ft.colors.BLUE_500,
-    ft.colors.RED_500,
-    ft.colors.GREEN_500,
-    ft.colors.AMBER_500,
-    ft.colors.PURPLE_500,
-    ft.colors.CYAN_500,
-    ft.colors.PINK_500,
-    ft.colors.TEAL_500,
+    ft.Colors.BLUE_500,
+    ft.Colors.RED_500,
+    ft.Colors.GREEN_500,
+    ft.Colors.AMBER_500,
+    ft.Colors.PURPLE_500,
+    ft.Colors.CYAN_500,
+    ft.Colors.PINK_500,
+    ft.Colors.TEAL_500,
 ]
 
 # Цвета фона (тёмная тема)
 BG_CARD = (
-    ft.colors.SURFACE_CONTAINER_LOW
+    ft.Colors.SURFACE_CONTAINER_LOW
     if hasattr(ft.colors, "SURFACE_CONTAINER_LOW")
-    else ft.colors.SURFACE_VARIANT
+    else ft.Colors.SURFACE_VARIANT
     if hasattr(ft.colors, "SURFACE_VARIANT")
-    else ft.colors.GREY_900
+    else ft.Colors.GREY_900
 )
 BG_CARD_HOVER = (
-    ft.colors.SURFACE_CONTAINER_HIGH
+    ft.Colors.SURFACE_CONTAINER_HIGH
     if hasattr(ft.colors, "SURFACE_CONTAINER_HIGH")
-    else ft.colors.SURFACE_VARIANT
+    else ft.Colors.SURFACE_VARIANT
     if hasattr(ft.colors, "SURFACE_VARIANT")
-    else ft.colors.GREY_800
+    else ft.Colors.GREY_800
 )
-BG_DARK = ft.colors.BACKGROUND if hasattr(ft.colors, "BACKGROUND") else ft.colors.BLACK
-BG_TODAY = ft.colors.BLUE_900
+BG_DARK = ft.Colors.BACKGROUND if hasattr(ft.colors, "BACKGROUND") else ft.Colors.BLACK
+BG_TODAY = ft.Colors.BLUE_900

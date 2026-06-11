@@ -19,14 +19,14 @@ class AppState:
 
         # Предзаполняем базовыми цветами
         self.subject_colors: Dict[str, str] = {
-            "Математика": ft.colors.BLUE_500,
-            "Физика": ft.colors.RED_500,
-            "Химия": ft.colors.GREEN_500,
-            "Информатика": ft.colors.AMBER_500,
-            "История": ft.colors.PURPLE_500,
-            "Литература": ft.colors.CYAN_500,
-            "Биология": ft.colors.PINK_500,
-            "География": ft.colors.TEAL_500,
+            "Математика": ft.Colors.BLUE_500,
+            "Физика": ft.Colors.RED_500,
+            "Химия": ft.Colors.GREEN_500,
+            "Информатика": ft.Colors.AMBER_500,
+            "История": ft.Colors.PURPLE_500,
+            "Литература": ft.Colors.CYAN_500,
+            "Биология": ft.Colors.PINK_500,
+            "География": ft.Colors.TEAL_500,
         }
 
     def get_subject_color(self, subj: str) -> str:
