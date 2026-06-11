@@ -19,3 +19,5 @@ data/.db_change
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+data/academic_backup.json
+data/session_config.json
