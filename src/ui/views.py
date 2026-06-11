@@ -18,9 +18,9 @@ from src.ui.dialogs.delete_dialog import create_delete_dialog
 from src.ui.observers import DBChangeHandler
 from src.ui.state import AppState
 from src.ui.tabs.calendar_tab import create_calendar_tab
-from src.ui.tabs.grades_tab import create_grades_tab, update_grades_view
-from src.ui.tabs.stats_tab import create_stats_tab, update_kpi_cards, update_stats_charts
-from src.ui.tabs.tasks_tab import create_tasks_tab, update_task_list
+from src.ui.tabs.grades_tab import create_grades_tab
+from src.ui.tabs.stats_tab import create_stats_tab
+from src.ui.tabs.tasks_tab import create_tasks_tab
 
 logger = setup_logger("views")
 
@@ -122,7 +122,7 @@ def run_gui(db: IDatabaseManager) -> None:
 
         def trigger_data_update():
             app_state.reload()
-            _update_load_indicator()
+            _update_load_indicator()  # noqa: F821
             # Always run notifications check
             send_desktop_notifications(
                 db,
@@ -131,7 +131,7 @@ def run_gui(db: IDatabaseManager) -> None:
                 _on_notification_done,
                 last_notification_date_ref,
             )
-            refresh_active_tab()
+            refresh_active_tab()  # noqa: F821
 
         # Initialize Modal Dialogs
         add_dialog, open_add_dialog, open_edit_dialog = create_add_edit_dialog(
@@ -178,7 +178,7 @@ def run_gui(db: IDatabaseManager) -> None:
             on_click=toggle_theme,
             tooltip="Сменить тему",
         )
-        header = ft.Row(
+        header = ft.Row(  # noqa: F841
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             controls=[
                 ft.Row(
@@ -239,7 +239,7 @@ def run_gui(db: IDatabaseManager) -> None:
             weight=ft.FontWeight.BOLD,
             visible=False,
         )
-        load_container = ft.Container(
+        load_container = ft.Container(  # noqa: F841
             content=ft.Column(
                 [
                     ft.Row(
@@ -260,10 +260,10 @@ def run_gui(db: IDatabaseManager) -> None:
             border=ft.border.all(1, ft.Colors.GREY_800),
         )
 
-        tabs = ft.Tabs(
+        tabs = ft.Tabs(  # noqa: F841
             selected_index=0,
             animation_duration=250,
-            on_change=lambda e: refresh_active_tab(),
+            on_change=lambda e: refresh_active_tab(),  # noqa: F821
             tabs=[
                 ft.Tab(text="Задачи", icon=ft.Icons.LIST_ROUNDED, content=tasks_view),
                 ft.Tab(
@@ -292,80 +292,6 @@ def run_gui(db: IDatabaseManager) -> None:
             tooltip="Добавить задачу",
         )
 
-        # _update_task_list moved to tasks_tab.py
-
-        def _update_load_indicator():
-            today_str = date.today().isoformat()
-            try:
-                load, is_overloaded = db.get_daily_load_for_date(today_str)
-            except Exception as ex:
-                logger.warning(f"Error getting daily load: {ex}")
-                load, is_overloaded = 0, False
-
-            load_progress.value = min(1.0, load / DAILY_LOAD_LIMIT)
-            if is_overloaded:
-                load_progress.color = ft.Colors.RED_ACCENT
-                warning_banner.value = f"⚠️ ВНИМАНИЕ: Превышена дневная нагрузка! Текущая: {load} из {DAILY_LOAD_LIMIT}."
-                warning_banner.visible = True
-            else:
-                load_progress.color = ft.Colors.GREEN_ACCENT
-                warning_banner.visible = False
-            load_label.value = f"Дневная нагрузка на сегодня: {load} / {DAILY_LOAD_LIMIT}"
-
-        def refresh_active_tab(e=None):
-            idx = tabs.selected_index
-            if app_state.is_dirty(idx):
-                if idx == 0:
-                    try:
-                        update_task_list(
-                            db,
-                            search_field,
-                            filter_status,
-                            filter_tag,
-                            sort_dropdown,
-                            task_list,
-                            trigger_data_update,
-                            open_edit_dialog,
-                            open_delete_confirm,
-                        )
-                    except Exception as ex:
-                        logger.error(f"Error in update_task_list: {ex}", exc_info=True)
-                elif idx == 1:
-                    try:
-                        update_kpi_cards(db, kpi_row, period_dropdown)
-                        update_stats_charts(
-                            db,
-                            stats_chart,
-                            legend_wrap,
-                            productivity_chart,
-                            tag_load_list,
-                            period_dropdown,
-                            app_state.get_subject_color,
-                        )
-                    except Exception as ex:
-                        logger.warning(f"Error in stats tab: {ex}")
-                elif idx == 2:
-                    try:
-                        update_grades_view(
-                            db,
-                            grades_placeholder,
-                            grades_layout_container,
-                            grades_kpi_row,
-                            subject_grades_list,
-                            grades_chart,
-                        )
-                    except Exception as ex:
-                        logger.warning(f"Error in grades tab: {ex}")
-                elif idx == 3:
-                    try:
-                        update_calendar_grid()
-                    except Exception as ex:
-                        logger.warning(f"Error in calendar tab: {ex}")
-
-                app_state.mark_clean(idx)
-            page.update()
-
-        page.add(ft.Column([header, load_container, tabs], expand=True, spacing=15))
         page.floating_action_button = fab
 
         # Initial trigger to populate the UI

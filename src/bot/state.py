@@ -14,8 +14,6 @@ class BotState:
     def __init__(self, db: DatabaseManager):
         self.db = db
         self._active_tasks: Optional[List[Task]] = None
-        self._all_tasks: Optional[List[Task]] = None
-        self._tags: Optional[List[str]] = None
         self._kpi_cache: Dict[str, dict] = {}
         self._grades_cache: Optional[dict] = None
         self._subject_gpa_cache: Optional[dict] = None
@@ -23,8 +21,6 @@ class BotState:
     def invalidate(self) -> None:
         """Сбрасывает весь кэш. Вызывать после изменений данных."""
         self._active_tasks = None
-        self._all_tasks = None
-        self._tags = None
         self._kpi_cache.clear()
         self._grades_cache = None
         self._subject_gpa_cache = None
@@ -33,16 +29,6 @@ class BotState:
         if self._active_tasks is None:
             self._active_tasks = self.db.get_active_tasks()
         return self._active_tasks
-
-    def get_all_tasks(self) -> List[Task]:
-        if self._all_tasks is None:
-            self._all_tasks = self.db.get_all_tasks()
-        return self._all_tasks
-
-    def get_tags(self) -> List[str]:
-        if self._tags is None:
-            self._tags = self.db.get_all_tags()
-        return self._tags
 
     def get_kpi_stats(self, period: str = "all") -> dict:
         if period not in self._kpi_cache:

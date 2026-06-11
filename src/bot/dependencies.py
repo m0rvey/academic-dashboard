@@ -1,4 +1,5 @@
 import os
+import sys
 
 from aiogram import Bot
 from dotenv import load_dotenv
@@ -25,7 +26,7 @@ if not TOKEN or TOKEN in ("YOUR_TELEGRAM_BOT_TOKEN_HERE", "your_token_here"):
     logger.critical(
         "В файле .env не указан корректный TELEGRAM_BOT_TOKEN! Пожалуйста, замените заглушку на ваш реальный токен от @BotFather."
     )
-    exit(1)
+    sys.exit(1)
 
 bot = Bot(token=TOKEN)
 db = DatabaseManager(DB_PATH)

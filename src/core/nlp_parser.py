@@ -177,7 +177,6 @@ class SubjectParser(BaseParser):
 class TagsParser(BaseParser):
     def parse(self, text: str) -> Tuple[str, List[str]]:
         tags = []
-        text.lower()
 
         hashtag_matches = list(re.finditer(r"#([a-zA-Zа-яА-ЯёЁ0-9_]+)", text))
         for match in reversed(hashtag_matches):
