@@ -29,6 +29,11 @@ def run_gui(db: IDatabaseManager) -> None:
     """Запускает графический интерфейс приложения."""
     db.rotate_local_backups()
 
+    import sys
+    if "pytest" not in sys.modules:
+        from bot import start_bot_in_thread
+        start_bot_in_thread()
+
     async def main(page: ft.Page) -> None:
         page.title = "Academic Dashboard"
         page.scroll = ft.ScrollMode.ADAPTIVE
@@ -406,6 +411,11 @@ def run_gui(db: IDatabaseManager) -> None:
             observer.stop()
             observer.join()
             db.rotate_local_backups()
+            try:
+                from bot import stop_bot_in_thread
+                stop_bot_in_thread()
+            except Exception as ex:
+                logger.error(f"Error stopping bot on GUI exit: {ex}")
 
         page.on_disconnect = cleanup
 

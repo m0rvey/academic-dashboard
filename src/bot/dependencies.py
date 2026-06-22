@@ -22,13 +22,15 @@ ADMIN_USERS = {int(x.strip()) for x in admin_users_str.split(",") if x.strip()}
 if not ADMIN_USERS:
     ADMIN_USERS = ALLOWED_USERS
 
-if not TOKEN or TOKEN in ("YOUR_TELEGRAM_BOT_TOKEN_HERE", "your_token_here"):
-    logger.critical(
-        "В файле .env не указан корректный TELEGRAM_BOT_TOKEN! Пожалуйста, замените заглушку на ваш реальный токен от @BotFather."
-    )
-    sys.exit(1)
-
-bot = Bot(token=TOKEN)
 db = DatabaseManager(DB_PATH)
 db.init_db()
-state = BotState(db)
+
+if not TOKEN or TOKEN in ("YOUR_TELEGRAM_BOT_TOKEN_HERE", "your_token_here"):
+    logger.warning(
+        "В файле .env не указан корректный TELEGRAM_BOT_TOKEN! Бот отключен."
+    )
+    bot = None
+    state = None
+else:
+    bot = Bot(token=TOKEN)
+    state = BotState(db)

@@ -1,4 +1,5 @@
 import asyncio
+import sys
 
 from aiogram import Dispatcher
 from aiogram.types import BotCommand
@@ -72,7 +73,54 @@ async def main_bot():
     await dp.start_polling(bot)
 
 
+import threading
+
+bot_thread = None
+bot_loop = None
+
+
+def start_bot_in_thread():
+    global bot_thread, bot_loop
+    if bot is None:
+        logger.warning("Бот не запущен, так как не настроен TELEGRAM_BOT_TOKEN.")
+        return
+
+    def _run():
+        global bot_loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        bot_loop = loop
+        try:
+            loop.run_until_complete(main_bot())
+        except Exception as e:
+            logger.error(f"Ошибка в потоке бота: {e}")
+        finally:
+            loop.close()
+
+    bot_thread = threading.Thread(target=_run, daemon=True)
+    bot_thread.start()
+    logger.info("Поток Telegram-бота запущен.")
+
+
+def stop_bot_in_thread():
+    global bot_loop, bot_thread
+    if bot_loop and bot_loop.is_running():
+        asyncio.run_coroutine_threadsafe(stop_bot(), bot_loop)
+    if bot_thread:
+        bot_thread.join(timeout=2.0)
+        logger.info("Поток Telegram-бота остановлен.")
+
+
+async def stop_bot():
+    logger.info("Остановка Telegram-бота...")
+    await dp.stop_polling()
+    await bot.session.close()
+
+
 if __name__ == "__main__":
+    if bot is None:
+        logger.critical("Невозможно запустить бота: токен отсутствует.")
+        sys.exit(1)
     try:
         asyncio.run(main_bot())
     except KeyboardInterrupt:
