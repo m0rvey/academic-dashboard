@@ -190,7 +190,7 @@ def run_gui(db: IDatabaseManager) -> None:
                         ),
                         ft.Text(
                             "Академический дашборд",
-                            style=ft.TextThemeStyle.HEADLINE_MEDIUM,
+                            theme_style=ft.TextThemeStyle.HEADLINE_MEDIUM,
                             weight=ft.FontWeight.BOLD,
                             color=ft.Colors.LIGHT_BLUE_200,
                         ),

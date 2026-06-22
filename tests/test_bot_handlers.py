@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from aiogram.types import Chat, Message, User
@@ -13,7 +13,7 @@ async def test_backup_db_handler_not_admin():
     msg.chat = Chat(id=999, type="private")
     msg.answer = AsyncMock()
 
-    mock_db = AsyncMock()
+    mock_db = MagicMock()
     with patch("src.bot.handlers.commands.ADMIN_USERS", {123}):
         await backup_db_handler(msg, db=mock_db)
         msg.answer.assert_called_once_with(
@@ -29,7 +29,7 @@ async def test_backup_db_handler_admin():
     msg.chat = Chat(id=123, type="private")
     msg.answer_document = AsyncMock()
 
-    mock_db = AsyncMock()
+    mock_db = MagicMock()
     with patch("src.bot.handlers.commands.ADMIN_USERS", {123}):
         with patch("src.bot.handlers.commands.DB_PATH") as mock_path:
             mock_path.exists.return_value = True
