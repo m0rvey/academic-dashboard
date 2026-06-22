@@ -14,7 +14,7 @@ router = Router()
 
 
 @router.message(F.document)
-async def handle_document_restore(message: Message, db: DatabaseManager, state: BotState):
+async def handle_document_restore(message: Message, db: DatabaseManager, app_state: BotState):
     db.register_user(message.chat.id)
     if message.from_user.id not in ADMIN_USERS:
         await message.answer("⛔ У вас нет прав на загрузку резервных копий или импорт данных.")
@@ -73,7 +73,7 @@ async def handle_document_restore(message: Message, db: DatabaseManager, state: 
                     source.backup(dst)
                 source.close()
                 db._notify_change()
-                state.invalidate()
+                app_state.invalidate()
             except sqlite3.Error as e:
                 await message.answer(f"❌ Ошибка при восстановлении базы данных: {e}")
                 return
@@ -89,7 +89,7 @@ async def handle_document_restore(message: Message, db: DatabaseManager, state: 
             try:
                 db.import_from_json(temp_file_path)
                 db._notify_change()
-                state.invalidate()
+                app_state.invalidate()
                 await message.answer(
                     "📝 *Задачи из JSON успешно импортированы!*\n"
                     "Все новые задачи добавлены в текущую базу данных. "

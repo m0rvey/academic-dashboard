@@ -40,7 +40,7 @@ async def test_load_handler_no_tasks():
     mock_state = MagicMock()
     mock_state.get_active_tasks.return_value = []
 
-    await check_load(msg, db=mock_db, state=mock_state)
+    await check_load(msg, db=mock_db, app_state=mock_state)
     msg.answer.assert_called_once()
     response = msg.answer.call_args[0][0]
     assert "🎉" in response
@@ -56,7 +56,7 @@ async def test_load_handler_with_tasks():
     mock_state = MagicMock()
     mock_state.get_active_tasks.return_value = [task]
 
-    await check_load(msg, db=mock_db, state=mock_state)
+    await check_load(msg, db=mock_db, app_state=mock_state)
     msg.answer.assert_called_once()
     response = msg.answer.call_args[0][0]
     assert "3" in response
@@ -71,7 +71,7 @@ async def test_list_handler_no_tasks():
     mock_state = MagicMock()
     mock_state.get_sorted_active_tasks.return_value = []
 
-    await list_tasks(msg, db=mock_db, state=mock_state)
+    await list_tasks(msg, db=mock_db, app_state=mock_state)
     msg.answer.assert_called_once()
     response = msg.answer.call_args[0][0]
     assert "🎉" in response
@@ -87,7 +87,7 @@ async def test_list_handler_with_tasks():
     mock_state = MagicMock()
     mock_state.get_sorted_active_tasks.return_value = [task]
 
-    await list_tasks(msg, db=mock_db, state=mock_state)
+    await list_tasks(msg, db=mock_db, app_state=mock_state)
     msg.answer.assert_called_once()
     response = msg.answer.call_args[0][0]
     assert "Мат" in response
@@ -100,7 +100,7 @@ async def test_done_handler_invalid_id():
     msg = _make_message("/done abc")
     mock_db = MagicMock()
     mock_state = MagicMock()
-    await complete_task_command(msg, db=mock_db, state=mock_state)
+    await complete_task_command(msg, db=mock_db, app_state=mock_state)
     msg.answer.assert_called_once()
     assert "❌" in msg.answer.call_args[0][0]
 
@@ -114,7 +114,7 @@ async def test_done_handler_task_not_found():
     mock_db.get_task_by_id.return_value = None
     mock_state = MagicMock()
 
-    await complete_task_command(msg, db=mock_db, state=mock_state)
+    await complete_task_command(msg, db=mock_db, app_state=mock_state)
     msg.answer.assert_called_once()
     assert "не найдена" in msg.answer.call_args[0][0]
 
@@ -129,7 +129,7 @@ async def test_done_handler_task_already_done():
     mock_db.get_task_by_id.return_value = task
     mock_state = MagicMock()
 
-    await complete_task_command(msg, db=mock_db, state=mock_state)
+    await complete_task_command(msg, db=mock_db, app_state=mock_state)
     msg.answer.assert_called_once()
     assert "ℹ️" in msg.answer.call_args[0][0]
 
@@ -145,7 +145,7 @@ async def test_done_handler_success():
     mock_db.update_task_status.return_value = True
     mock_state = MagicMock()
 
-    await complete_task_command(msg, db=mock_db, state=mock_state)
+    await complete_task_command(msg, db=mock_db, app_state=mock_state)
     msg.answer.assert_called_once()
     assert "✅" in msg.answer.call_args[0][0]
     mock_state.invalidate.assert_called_once()
@@ -175,7 +175,7 @@ async def test_stats_handler():
     mock_state = MagicMock()
     mock_state.get_kpi_stats.return_value = {"total": 10, "completed": 5, "overdue": 2, "high_priority": 3}
 
-    await stats_command_handler(msg, db=mock_db, state=mock_state)
+    await stats_command_handler(msg, db=mock_db, app_state=mock_state)
     msg.answer.assert_called_once()
     response = msg.answer.call_args[0][0]
     assert "📊" in response
@@ -191,7 +191,7 @@ async def test_grades_handler_no_data():
     mock_state.get_grades_stats.return_value = {}
     mock_state.get_subject_grades_gpa.return_value = {}
 
-    await grades_command_handler(msg, db=mock_db, state=mock_state)
+    await grades_command_handler(msg, db=mock_db, app_state=mock_state)
     msg.answer.assert_called_once()
     response = msg.answer.call_args[0][0]
     assert "Нет данных" in response

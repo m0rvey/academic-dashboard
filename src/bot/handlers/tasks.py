@@ -33,10 +33,10 @@ class ConfirmNLPState(StatesGroup):
 
 
 @router.message(Command("list"))
-async def list_tasks(message: Message, db: DatabaseManager, state: BotState):
+async def list_tasks(message: Message, db: DatabaseManager, app_state: BotState):
     db.register_user(message.chat.id)
 
-    sorted_tasks = state.get_sorted_active_tasks()
+    sorted_tasks = app_state.get_sorted_active_tasks()
 
     if not sorted_tasks:
         await message.answer("🎉 У вас нет активных задач! Отличная работа!")
@@ -68,7 +68,7 @@ async def list_tasks(message: Message, db: DatabaseManager, state: BotState):
 
 
 @router.callback_query(F.data.startswith("complete_"))
-async def process_complete_callback(callback: CallbackQuery, db: DatabaseManager, state: BotState):
+async def process_complete_callback(callback: CallbackQuery, db: DatabaseManager, app_state: BotState):
     try:
         task_id = int(callback.data.split("_")[1])
     except (IndexError, ValueError):
@@ -85,7 +85,7 @@ async def process_complete_callback(callback: CallbackQuery, db: DatabaseManager
         return
 
     if db.update_task_status(task_id, TaskStatus.DONE):
-        state.invalidate()
+        app_state.invalidate()
         await callback.answer(f"✅ Задача '{task.subject[:20]}' выполнена!")
         await callback.message.edit_text(
             f"🎉 *Задача выполнена!*\n"
@@ -99,7 +99,7 @@ async def process_complete_callback(callback: CallbackQuery, db: DatabaseManager
 
 
 @router.message(Command("done"))
-async def complete_task_command(message: Message, db: DatabaseManager, state: BotState):
+async def complete_task_command(message: Message, db: DatabaseManager, app_state: BotState):
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
         await message.answer(
@@ -124,7 +124,7 @@ async def complete_task_command(message: Message, db: DatabaseManager, state: Bo
         return
 
     if db.update_task_status(task_id, TaskStatus.DONE):
-        state.invalidate()
+        app_state.invalidate()
         await message.answer(
             f"✅ *Задача выполнена!*\n• Предмет: *{escape_md(task.subject)}*\n• Описание: _{escape_md(task.description)}_",
             parse_mode="Markdown",

@@ -12,8 +12,8 @@ from src.core.database import DatabaseManager
 router = Router()
 
 
-def generate_stats_text(period: str, state: BotState) -> str:
-    stats = state.get_kpi_stats(period)
+def generate_stats_text(period: str, app_state: BotState) -> str:
+    stats = app_state.get_kpi_stats(period)
     period_names = {
         "all": "За всё время",
         "today": "Сегодня",
@@ -53,17 +53,17 @@ def generate_stats_keyboard(current_period: str):
 
 
 @router.message(Command("stats"))
-async def stats_command_handler(message: Message, db: DatabaseManager, state: BotState):
+async def stats_command_handler(message: Message, db: DatabaseManager, app_state: BotState):
     db.register_user(message.chat.id)
-    text = generate_stats_text("week", state)
+    text = generate_stats_text("week", app_state)
     markup = generate_stats_keyboard("week")
     await message.answer(text, parse_mode="Markdown", reply_markup=markup)
 
 
 @router.callback_query(F.data.startswith("stats_"))
-async def process_stats_callback(callback: CallbackQuery, state: BotState):
+async def process_stats_callback(callback: CallbackQuery, app_state: BotState):
     period = callback.data.split("_")[1]
-    text = generate_stats_text(period, state)
+    text = generate_stats_text(period, app_state)
     markup = generate_stats_keyboard(period)
     try:
         await callback.message.edit_text(text, parse_mode="Markdown", reply_markup=markup)
@@ -72,9 +72,9 @@ async def process_stats_callback(callback: CallbackQuery, state: BotState):
     await callback.answer()
 
 
-def generate_grades_text(state: BotState) -> str:
-    stats = state.get_grades_stats()
-    subject_gpa = state.get_subject_grades_gpa()
+def generate_grades_text(app_state: BotState) -> str:
+    stats = app_state.get_grades_stats()
+    subject_gpa = app_state.get_subject_grades_gpa()
 
     if not stats:
         return "🎓 *Успеваемость (GPA)*\n\nНет данных об оценках."
@@ -105,7 +105,7 @@ def generate_grades_text(state: BotState) -> str:
 
 
 @router.message(Command("grades"))
-async def grades_command_handler(message: Message, db: DatabaseManager, state: BotState):
+async def grades_command_handler(message: Message, db: DatabaseManager, app_state: BotState):
     db.register_user(message.chat.id)
-    text = generate_grades_text(state)
+    text = generate_grades_text(app_state)
     await message.answer(text, parse_mode="Markdown")

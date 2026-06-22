@@ -21,5 +21,5 @@ class DependencyMiddleware(BaseMiddleware):
         data: Dict[str, Any],
     ) -> Any:
         data["db"] = self.db
-        data["state"] = self.state
+        data["app_state"] = self.state
         return await handler(event, data)

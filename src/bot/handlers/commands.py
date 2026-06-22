@@ -70,10 +70,10 @@ async def backup_db_handler(message: Message, db: DatabaseManager):
 
 
 @router.message(Command("load"))
-async def check_load(message: Message, db: DatabaseManager, state: BotState):
+async def check_load(message: Message, db: DatabaseManager, app_state: BotState):
     db.register_user(message.chat.id)
     today_str = date.today().isoformat()
-    all_tasks = state.get_active_tasks()
+    all_tasks = app_state.get_active_tasks()
 
     total_load, is_overloaded = check_daily_load(all_tasks, today_str)
 
