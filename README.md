@@ -160,6 +160,47 @@ PYTHONPATH=. python -m pytest tests/ -v
 | Rate Limiting | ✅ RateLimitMiddleware (1s, memory cleanup) |
 | Markdown XSS | ✅ escape_md для всех спецсимволов v1 |
 
+## Обход блокировок Telegram в РФ
+
+Если у вас возникают проблемы с подключением бота из-за ограничений Telegram в РФ, вы можете настроить прокси или кастомный API-сервер в настройках приложения (или в файле `~/Library/Application Support/AcademicDashboard/.env`).
+
+### 1. Кастомный API-сервер (Реверс-прокси) — Рекомендуемый способ
+Вместо прямого обращения к `api.telegram.org` приложение будет отправлять запросы через промежуточный сервер-прокси.
+
+- **Публичные прокси** (использовать на свой страх и риск, могут быть нестабильны):
+  Введите в поле **Кастомный API сервер**:
+  `https://api.telegram-proxy.org/bot`
+  или
+  `https://tgproxy.uz/bot`
+
+- **Собственный приватный прокси через Cloudflare Workers** (Рекомендуется: бесплатно, приватно, быстро):
+  1. Зарегистрируйтесь на [Cloudflare](https://dash.cloudflare.com/) (это бесплатно).
+  2. Перейдите в **Workers & Pages** -> **Create Application** -> **Create Worker**.
+  3. Назовите воркер (например, `tg-proxy-worker`) и нажмите **Deploy**.
+  4. Нажмите **Edit Code** и замените код в файле `worker.js` на следующий:
+     ```javascript
+     addEventListener('fetch', event => {
+       event.respondWith(handleRequest(event.request))
+     })
+
+     async function handleRequest(request) {
+       const url = new URL(request.url)
+       url.hostname = 'api.telegram.org'
+       return fetch(url, request)
+     }
+     ```
+  5. Нажмите **Deploy** в правом верхнем углу.
+  6. Скопируйте адрес вашего воркера (например, `https://tg-proxy-worker.your-subdomain.workers.dev`).
+  7. Вставьте этот URL в поле **Кастомный API сервер** в приложении, добавив в конец `/bot` (например: `https://tg-proxy-worker.your-subdomain.workers.dev/bot`).
+
+### 2. Использование HTTP / SOCKS5 прокси
+В поле **Прокси-сервер** вы можете указать ваш собственный прокси-сервер:
+- **HTTP/HTTPS прокси**: `http://ip:port` или `http://user:password@ip:port`
+- **SOCKS5 прокси**: `socks5://ip:port` или `socks5://user:password@ip:port`
+
+Благодаря библиотеке `aiohttp-socks`, приложение нативно поддерживает SOCKS4/5 прокси для Telegram бота.
+
 ## Лицензия
 
 MIT
+

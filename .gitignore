@@ -6,7 +6,6 @@ __pycache__/
 
 build/
 dist/
-*.spec
 
 data/planner.db
 data/planner.db-wal

@@ -577,13 +577,31 @@ def run_gui(db: IDatabaseManager) -> None:
                 width=450,
                 helper_text="Только цифры. ID вашего аккаунта (можно узнать у @userinfobot)",
             )
+            proxy_input = ft.TextField(
+                label="Прокси-сервер (Опционально)",
+                hint_text="http://username:password@ip:port или socks5://...",
+                border_color=ft.Colors.LIGHT_BLUE_400,
+                border_radius=10,
+                width=450,
+                helper_text="Для обхода блокировок Telegram в РФ (HTTP/SOCKS5)",
+            )
+            api_server_input = ft.TextField(
+                label="Кастомный API сервер (Опционально)",
+                hint_text="https://api.telegram-proxy.org/bot",
+                border_color=ft.Colors.LIGHT_BLUE_400,
+                border_radius=10,
+                width=450,
+                helper_text="Реверс-прокси для Telegram API (если не используется прокси)",
+            )
 
             async def save_credentials(e):
                 token_val = token_input.value.strip()
                 chat_id_val = chat_id_input.value.strip()
+                proxy_val = proxy_input.value.strip()
+                api_server_val = api_server_input.value.strip()
 
                 if not token_val or not chat_id_val:
-                    page.open(ft.SnackBar(ft.Text("❌ Пожалуйста, заполните оба поля!")))
+                    page.open(ft.SnackBar(ft.Text("❌ Пожалуйста, заполните оба обязательных поля!")))
                     return
 
                 try:
@@ -592,6 +610,10 @@ def run_gui(db: IDatabaseManager) -> None:
                         f.write(f"TELEGRAM_BOT_TOKEN={token_val}\n")
                         f.write(f"TELEGRAM_ALLOWED_USERS={chat_id_val}\n")
                         f.write(f"TELEGRAM_ADMIN_USERS={chat_id_val}\n")
+                        if proxy_val:
+                            f.write(f"TELEGRAM_PROXY={proxy_val}\n")
+                        if api_server_val:
+                            f.write(f"TELEGRAM_API_SERVER={api_server_val}\n")
 
                     from dotenv import load_dotenv
                     load_dotenv(dotenv_path=ENV_PATH, override=True)
@@ -652,7 +674,16 @@ def run_gui(db: IDatabaseManager) -> None:
                         ft.Divider(color=ft.Colors.GREY_800, height=20),
                         token_input,
                         chat_id_input,
-                        ft.Container(height=10),
+                        proxy_input,
+                        api_server_input,
+                        ft.Text(
+                            "💡 Проблемы с работой бота в РФ? Настройте прокси или кастомный API сервер. Инструкции по бесплатной настройке см. в README.md.",
+                            size=11,
+                            color=ft.Colors.GREY_500,
+                            text_align=ft.TextAlign.CENTER,
+                            width=450,
+                        ),
+                        ft.Container(height=5),
                         ft.ElevatedButton(
                             text="Сохранить и запустить",
                             on_click=save_credentials,
