@@ -5,13 +5,13 @@ from aiogram import Bot
 from dotenv import load_dotenv
 
 from src.bot.state import BotState
-from src.core.config import DB_PATH
+from src.core.config import DB_PATH, ENV_PATH
 from src.core.database import DatabaseManager
 from src.core.logger import setup_logger
 
 logger = setup_logger("bot")
 
-load_dotenv()
+load_dotenv(dotenv_path=ENV_PATH)
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 allowed_users_str = os.getenv("TELEGRAM_ALLOWED_USERS", "")
 ALLOWED_USERS = {int(x.strip()) for x in allowed_users_str.split(",") if x.strip()}
