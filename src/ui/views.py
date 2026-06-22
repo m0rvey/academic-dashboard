@@ -393,9 +393,9 @@ def run_gui(db: IDatabaseManager) -> None:
                 return
             async with _refresh_lock:
                 try:
-                    await asyncio.to_thread(trigger_data_update)
-                except RuntimeError:
-                    pass
+                    trigger_data_update()
+                except Exception as ex:
+                    logger.error(f"Error in _safe_refresh: {ex}")
 
         observer = Observer()
         handler = DBChangeHandler(_schedule_refresh)
