@@ -79,7 +79,14 @@ def create_tasks_tab(session_config, save_session_config, refresh_all):
         border_color=ft.Colors.GREY_800,
     )
 
-    filters_row = ft.Row([search_field, filter_status, filter_tag, sort_dropdown], spacing=10)
+    refresh_btn = ft.IconButton(
+        icon=ft.Icons.REFRESH_ROUNDED,
+        icon_color=ft.Colors.LIGHT_BLUE_200,
+        tooltip="Обновить данные",
+        on_click=lambda e: refresh_all(),
+    )
+
+    filters_row = ft.Row([search_field, filter_status, filter_tag, sort_dropdown, refresh_btn], spacing=10)
     task_list = ft.ListView(expand=True, spacing=10, padding=5)
     task_list.display_count = 30
 
