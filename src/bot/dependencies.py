@@ -14,10 +14,25 @@ logger = setup_logger("bot")
 load_dotenv(dotenv_path=ENV_PATH)
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 allowed_users_str = os.getenv("TELEGRAM_ALLOWED_USERS", "")
-ALLOWED_USERS = {int(x.strip()) for x in allowed_users_str.split(",") if x.strip()}
+ALLOWED_USERS = set()
+for x in allowed_users_str.split(","):
+    x_clean = x.strip()
+    if x_clean:
+        try:
+            ALLOWED_USERS.add(int(x_clean))
+        except ValueError:
+            logger.warning(f"Некорректный ID пользователя в TELEGRAM_ALLOWED_USERS: '{x_clean}' (должно быть целым числом)")
 
 admin_users_str = os.getenv("TELEGRAM_ADMIN_USERS", "")
-ADMIN_USERS = {int(x.strip()) for x in admin_users_str.split(",") if x.strip()}
+ADMIN_USERS = set()
+for x in admin_users_str.split(","):
+    x_clean = x.strip()
+    if x_clean:
+        try:
+            ADMIN_USERS.add(int(x_clean))
+        except ValueError:
+            logger.warning(f"Некорректный ID администратора в TELEGRAM_ADMIN_USERS: '{x_clean}' (должно быть целым числом)")
+
 # Fallback to ALLOWED_USERS if ADMIN_USERS is not set
 if not ADMIN_USERS:
     ADMIN_USERS = ALLOWED_USERS
