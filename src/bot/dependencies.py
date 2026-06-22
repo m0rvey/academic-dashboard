@@ -52,6 +52,10 @@ else:
 
     proxy = os.getenv("TELEGRAM_PROXY")
     api_server = os.getenv("TELEGRAM_API_SERVER")
+    if api_server:
+        api_server = api_server.strip()
+        if api_server and not (api_server.startswith("http://") or api_server.startswith("https://")):
+            api_server = "https://" + api_server
 
     session = None
     if proxy or api_server:

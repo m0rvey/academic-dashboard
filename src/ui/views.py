@@ -600,6 +600,10 @@ def run_gui(db: IDatabaseManager) -> None:
                 proxy_val = proxy_input.value.strip()
                 api_server_val = api_server_input.value.strip()
 
+                if api_server_val:
+                    if not (api_server_val.startswith("http://") or api_server_val.startswith("https://")):
+                        api_server_val = "https://" + api_server_val
+
                 if not token_val or not chat_id_val:
                     page.open(ft.SnackBar(ft.Text("❌ Пожалуйста, заполните оба обязательных поля!")))
                     return
