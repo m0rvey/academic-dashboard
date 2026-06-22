@@ -61,6 +61,27 @@ async def test_smoke_ui(db):
     assert dialog is not None, "Add dialog not found"
 
 
+@pytest.mark.asyncio
+async def test_smoke_ui_setup_needed(db, tmp_path):
+    temp_env = tmp_path / ".env"
+    main_func = get_main_func(db)
+
+    with patch("src.core.config.ENV_PATH", temp_env), \
+         patch("os.getenv", return_value=""):
+        
+        page = MagicMock(spec=ft.Page)
+        page.overlay = []
+        page.add = MagicMock()
+        page.update = MagicMock()
+
+        await main_func(page)
+
+        assert page.add.called
+        # Check that page added a Container representing the setup screen
+        args, _ = page.add.call_args
+        assert isinstance(args[0], ft.Container)
+
+
 def test_smoke_tasks_tab():
     from src.ui.tabs.tasks_tab import create_tasks_tab
 
