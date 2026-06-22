@@ -39,6 +39,7 @@ def run_gui(db: IDatabaseManager) -> None:
         import os
         from dotenv import load_dotenv
 
+        main_loop = asyncio.get_running_loop()
         load_dotenv(dotenv_path=ENV_PATH, override=True)
         token = os.getenv("TELEGRAM_BOT_TOKEN")
         allowed_users = os.getenv("TELEGRAM_ALLOWED_USERS")
@@ -393,7 +394,7 @@ def run_gui(db: IDatabaseManager) -> None:
             trigger_data_update()
 
             # Database Observer (watchdog)
-            loop = asyncio.get_running_loop()
+            loop = main_loop
 
             _refresh_lock = asyncio.Lock()
             refresh_state = {"handle": None}
@@ -440,20 +441,24 @@ def run_gui(db: IDatabaseManager) -> None:
 
             token_input = ft.TextField(
                 label="Токен Telegram-бота (от @BotFather)",
+                hint_text="123456789:ABCdefGhI_JkLmNoP...",
                 password=True,
                 can_reveal_password=True,
                 border_color=ft.Colors.LIGHT_BLUE_400,
                 border_radius=10,
                 width=450,
+                helper_text="Формат: числовой_id:символьный_хеш (от @BotFather)",
             )
             chat_id_input = ft.TextField(
                 label="Ваш Telegram Chat ID (от @userinfobot)",
+                hint_text="987654321",
                 border_color=ft.Colors.LIGHT_BLUE_400,
                 border_radius=10,
                 width=450,
+                helper_text="Только цифры. ID вашего аккаунта (можно узнать у @userinfobot)",
             )
 
-            def save_credentials(e):
+            async def save_credentials(e):
                 token_val = token_input.value.strip()
                 chat_id_val = chat_id_input.value.strip()
 
