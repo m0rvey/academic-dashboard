@@ -22,9 +22,9 @@ Python ≥3.10 / Flet 0.25.2 / Aiogram 3 / SQLite3 (WAL) / Pydantic v2
 
 Вы можете скачать и запустить скомпилированное приложение напрямую, без необходимости настраивать окружение Python:
 
-1. Скачайте архив с готовым приложением: **[Academic_Dashboard_macOS.zip](Academic_Dashboard_macOS.zip)**.
-2. Распакуйте архив двойным кликом.
-3. Перетащите распакованное приложение `Academic Dashboard.app` в папку **Программы** (`/Applications`).
+1. Скачайте образ диска с готовым приложением: **[AcademicDashboard_macos_universal.dmg](releases/AcademicDashboard_macos_universal.dmg)**.
+2. Откройте скачанный DMG-файл двойным кликом.
+3. Перетащите приложение `Academic Dashboard.app` в папку **Программы** (`/Applications`).
 4. Запустите приложение. При первом запуске появится приветственное окно настройки, где вам нужно будет указать:
    - **Токен Telegram-бота** (можно получить у [@BotFather](https://t.me/BotFather))
    - **Ваш Telegram Chat ID** (можно узнать через [@userinfobot](https://t.me/userinfobot))
