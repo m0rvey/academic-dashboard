@@ -50,6 +50,73 @@ def run_gui(db: IDatabaseManager) -> None:
             or not allowed_users
         )
 
+        def show_debug_console(e):
+            from src.core.config import LOG_FILE_PATH
+            
+            log_text_field = ft.TextField(
+                value="Загрузка логов...",
+                multiline=True,
+                read_only=True,
+                text_size=11,
+                font_family="Courier New",
+                height=450,
+                width=750,
+                border_color=ft.Colors.GREY_800,
+                border_radius=8,
+                bgcolor=ft.Colors.BLACK,
+                color=ft.Colors.GREEN_300,
+            )
+
+            def load_logs():
+                if not LOG_FILE_PATH.exists():
+                    log_text_field.value = "Лог-файл ещё не создан или пуст."
+                else:
+                    try:
+                        with open(LOG_FILE_PATH, "r", encoding="utf-8") as f:
+                            lines = f.readlines()
+                            last_lines = lines[-150:]
+                            log_text_field.value = "".join(last_lines)
+                    except Exception as ex:
+                        log_text_field.value = f"Ошибка чтения логов: {ex}"
+                try:
+                    log_text_field.update()
+                except Exception:
+                    pass
+
+            def clear_logs(ev):
+                try:
+                    if LOG_FILE_PATH.exists():
+                        with open(LOG_FILE_PATH, "w", encoding="utf-8") as f:
+                            f.truncate(0)
+                    load_logs()
+                except Exception as ex:
+                    page.open(ft.SnackBar(ft.Text(f"❌ Ошибка очистки логов: {ex}")))
+
+            debug_dialog = ft.AlertDialog(
+                title=ft.Row(
+                    [
+                        ft.Icon(ft.Icons.TERMINAL_ROUNDED, color=ft.Colors.LIGHT_BLUE_200),
+                        ft.Text("Консоль отладки и логи", size=18, weight=ft.FontWeight.BOLD),
+                    ],
+                    spacing=10,
+                ),
+                content=ft.Column(
+                    [
+                        log_text_field,
+                    ],
+                    tight=True,
+                ),
+                actions=[
+                    ft.TextButton("Обновить", on_click=lambda ev: load_logs(), icon=ft.Icons.REFRESH_ROUNDED),
+                    ft.TextButton("Очистить", on_click=clear_logs, icon=ft.Icons.DELETE_ROUNDED, icon_color=ft.Colors.RED_ACCENT),
+                    ft.TextButton("Закрыть", on_click=lambda ev: page.close(debug_dialog)),
+                ],
+                actions_alignment=ft.MainAxisAlignment.END,
+            )
+
+            page.open(debug_dialog)
+            load_logs()
+
         def show_dashboard():
             page.clean()
             page.title = "Academic Dashboard"
@@ -57,6 +124,55 @@ def run_gui(db: IDatabaseManager) -> None:
             page.padding = 20
             page.horizontal_alignment = ft.CrossAxisAlignment.START
             page.vertical_alignment = ft.MainAxisAlignment.START
+
+            # Bot status UI elements
+            bot_status_dot = ft.Icon(ft.Icons.CIRCLE, color=ft.Colors.RED_ACCENT, size=10)
+            bot_status_text = ft.Text("Бот: Неактивен", size=12, weight=ft.FontWeight.W_600, color=ft.Colors.GREY_300)
+
+            bot_status_badge = ft.Container(
+                content=ft.Row(
+                    [
+                        bot_status_dot,
+                        bot_status_text,
+                    ],
+                    spacing=8,
+                    alignment=ft.MainAxisAlignment.CENTER,
+                ),
+                padding=ft.padding.symmetric(horizontal=12, vertical=6),
+                border_radius=8,
+                bgcolor=ft.Colors.GREY_900,
+                border=ft.border.all(1, ft.Colors.GREY_800),
+                on_click=show_debug_console,
+                tooltip="Статус Telegram-бота. Нажмите, чтобы открыть консоль отладки.",
+            )
+
+            def update_bot_status():
+                try:
+                    from bot import is_bot_active
+                    active = is_bot_active()
+                except Exception:
+                    active = False
+
+                if active:
+                    bot_status_dot.color = ft.Colors.GREEN_ACCENT
+                    bot_status_text.value = "Бот: Активен"
+                    bot_status_text.color = ft.Colors.GREEN_100
+                    bot_status_badge.border = ft.border.all(1, ft.Colors.GREEN_800)
+                else:
+                    bot_status_dot.color = ft.Colors.RED_ACCENT
+                    bot_status_text.value = "Бот: Неактивен"
+                    bot_status_text.color = ft.Colors.RED_100
+                    bot_status_badge.border = ft.border.all(1, ft.Colors.RED_800)
+                
+                try:
+                    bot_status_badge.update()
+                except Exception:
+                    pass
+
+            async def bot_status_poll_loop():
+                while True:
+                    update_bot_status()
+                    await asyncio.sleep(5)
 
             # Load session configuration
             config_path = db.db_path.parent / "session_config.json"
@@ -147,6 +263,7 @@ def run_gui(db: IDatabaseManager) -> None:
             def trigger_data_update():
                 app_state.reload()
                 _update_load_indicator()
+                update_bot_status()
                 # Always run notifications check
                 send_desktop_notifications(
                     db,
@@ -223,6 +340,7 @@ def run_gui(db: IDatabaseManager) -> None:
                     ),
                     ft.Row(
                         [
+                            bot_status_badge,
                             ft.IconButton(
                                 icon=ft.Icons.DOWNLOAD_ROUNDED,
                                 icon_color=ft.Colors.LIGHT_BLUE_200,
@@ -237,10 +355,11 @@ def run_gui(db: IDatabaseManager) -> None:
                             ),
                             theme_icon,
                         ],
-                        spacing=5,
+                        spacing=8,
                     ),
                 ],
             )
+            header_container = ft.Container(content=header, margin=ft.margin.only(bottom=10))
 
             # Daily Workload indicators setup
             load_label = ft.Text(
@@ -387,7 +506,7 @@ def run_gui(db: IDatabaseManager) -> None:
                     app_state.mark_clean(idx)
                 page.update()
 
-            page.add(ft.Column([header, load_container, tabs], expand=True, spacing=15))
+            page.add(ft.Column([header_container, load_container, tabs], expand=True, spacing=20))
             page.floating_action_button = fab
 
             # Initial trigger to populate the UI
@@ -428,6 +547,7 @@ def run_gui(db: IDatabaseManager) -> None:
                 except Exception as ex:
                     logger.error(f"Error stopping bot on GUI exit: {ex}")
 
+            page.run_task(bot_status_poll_loop)
             page.on_disconnect = cleanup
             page.update()
 

@@ -79,6 +79,13 @@ bot_thread = None
 bot_loop = None
 
 
+def is_bot_active() -> bool:
+    global bot_thread, bot_loop
+    if bot_thread is not None and bot_thread.is_alive() and bot_loop is not None and bot_loop.is_running():
+        return True
+    return False
+
+
 def start_bot_in_thread():
     global bot_thread, bot_loop
     if bot is None:

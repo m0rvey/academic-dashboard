@@ -32,11 +32,13 @@ if IS_BUNDLED:
             pass
             
     ENV_PATH = app_support_env
+    LOG_FILE_PATH = DATA_DIR / "app.log"
 else:
     # Корневая директория проекта
     PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent.parent
     DB_PATH = PROJECT_ROOT / "data" / "planner.db"
     ENV_PATH = PROJECT_ROOT / ".env"
+    LOG_FILE_PATH = PROJECT_ROOT / "data" / "app.log"
 
 # Лимит дневной нагрузки (сумма effort_score на один день)
 DAILY_LOAD_LIMIT: int = 10
