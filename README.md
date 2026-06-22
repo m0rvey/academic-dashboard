@@ -24,29 +24,29 @@ Python ≥3.10 / Flet 0.25.2 / Aiogram 3 / SQLite3 (WAL) / Pydantic v2
 git clone https://github.com/m0rvey/academic-dashboard.git
 cd academic-dashboard
 python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+.venv/bin/pip install -r requirements.txt pytest pytest-asyncio
 ```
 
 ## Запуск
 
 ```bash
 # GUI
-python main.py
+.venv/bin/python main.py
 
 # CLI
-python main.py --cli
+.venv/bin/python main.py --cli
 
 # Telegram Bot (требуется .env с TELEGRAM_BOT_TOKEN)
-python bot.py
+.venv/bin/python bot.py
 
 # Тесты
-PYTHONPATH=. python -m pytest tests/ -v
+TELEGRAM_BOT_TOKEN="123456789:ABCdefGHIjklMNOpqrsTUVwxyz" PYTHONPATH=. .venv/bin/pytest tests/ -v
 ```
 
 ### Переменные окружения (.env)
 
-```
+Создайте файл `.env` в корневой директории:
+```env
 TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
 TELEGRAM_ALLOWED_USERS=123456789
 TELEGRAM_ADMIN_USERS=123456789
@@ -117,9 +117,7 @@ PYTHONPATH=. python -m pytest tests/ -v
 
 ## Качество кода
 
-- **Linting:** ruff (line-length=120)
-- **Formatting:** ruff-format
-- **Pre-commit hooks:** ruff + ruff-format автоматически перед коммитом
+- **Linting & Formatting:** ruff (line-length=120)
 - **Типизация:** полная (Pydantic v2, type hints)
 - **DI:** DependencyMiddleware для Aiogram (тестируемые хендлеры)
 
