@@ -500,6 +500,13 @@ def run_gui(db: IDatabaseManager) -> None:
                     from bot import start_bot_in_thread
                     start_bot_in_thread()
 
+                    # Воспроизводим системный звук завершения настройки на macOS
+                    import subprocess
+                    try:
+                        subprocess.Popen(["afplay", "/System/Library/Sounds/Glass.aiff"])
+                    except Exception:
+                        pass
+
                     page.open(ft.SnackBar(ft.Text("✅ Настройки успешно сохранены! Запуск бота...")))
                     show_dashboard()
                 except Exception as ex:
