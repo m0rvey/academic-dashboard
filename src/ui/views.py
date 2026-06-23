@@ -152,19 +152,27 @@ def run_gui(db: IDatabaseManager) -> None:
                 except Exception:
                     active = False
 
-                if active:
-                    bot_status_dot.color = ft.Colors.GREEN_ACCENT
-                    bot_status_text.value = "Бот: Активен"
-                    bot_status_text.color = ft.Colors.GREEN_100
-                    bot_status_badge.border = ft.border.all(1, ft.Colors.GREEN_800)
-                else:
-                    bot_status_dot.color = ft.Colors.RED_ACCENT
-                    bot_status_text.value = "Бот: Неактивен"
-                    bot_status_text.color = ft.Colors.RED_100
-                    bot_status_badge.border = ft.border.all(1, ft.Colors.RED_800)
-                
+                def _ui_update():
+                    if active:
+                        bot_status_dot.color = ft.Colors.GREEN_ACCENT
+                        bot_status_text.value = "Бот: Активен"
+                        bot_status_text.color = ft.Colors.GREEN_100
+                        bot_status_badge.border = ft.border.all(1, ft.Colors.GREEN_800)
+                    else:
+                        bot_status_dot.color = ft.Colors.RED_ACCENT
+                        bot_status_text.value = "Бот: Неактивен"
+                        bot_status_text.color = ft.Colors.RED_100
+                        bot_status_badge.border = ft.border.all(1, ft.Colors.RED_800)
+                    try:
+                        bot_status_badge.update()
+                    except Exception:
+                        pass
+
                 try:
-                    bot_status_badge.update()
+                    if page.loop and page.loop.is_running():
+                        page.loop.call_soon_threadsafe(_ui_update)
+                    else:
+                        _ui_update()
                 except Exception:
                     pass
 
@@ -517,7 +525,26 @@ def run_gui(db: IDatabaseManager) -> None:
 
             def _safe_refresh():
                 try:
-                    trigger_data_update()
+                    # Считываем данные в фоновом потоке
+                    app_state.reload()
+
+                    # Обновляем UI в основном потоке событий Flet
+                    def _ui_update():
+                        _update_load_indicator()
+                        update_bot_status()
+                        send_desktop_notifications(
+                            db,
+                            notified_task_ids,
+                            active_notification_tasks,
+                            _on_notification_done,
+                            last_notification_date_ref,
+                        )
+                        refresh_active_tab()
+
+                    if page.loop and page.loop.is_running():
+                        page.loop.call_soon_threadsafe(_ui_update)
+                    else:
+                        _ui_update()
                 except Exception as ex:
                     logger.error(f"Error in _safe_refresh: {ex}")
 
