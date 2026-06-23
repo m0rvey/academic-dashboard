@@ -70,7 +70,7 @@ async def main_bot():
     _bg_tasks.add(task)
     task.add_done_callback(_reminder_done_callback)
 
-    await dp.start_polling(bot)
+    await dp.start_polling(bot, handle_signals=False)
 
 
 import threading

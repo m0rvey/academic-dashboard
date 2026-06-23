@@ -20,8 +20,7 @@ def get_main_func(db):
     return main_func
 
 
-@pytest.mark.asyncio
-async def test_smoke_ui(db):
+def test_smoke_ui(db):
     main_func = get_main_func(db)
     assert main_func is not None, "main function not found"
 
@@ -44,7 +43,7 @@ async def test_smoke_ui(db):
     page.close = MagicMock(side_effect=fake_close)
 
     # Run the main UI startup
-    await main_func(page)
+    main_func(page)
 
     # Verify that the UI added elements
     assert page.add.called
@@ -61,8 +60,7 @@ async def test_smoke_ui(db):
     assert dialog is not None, "Add dialog not found"
 
 
-@pytest.mark.asyncio
-async def test_smoke_ui_setup_needed(db, tmp_path):
+def test_smoke_ui_setup_needed(db, tmp_path):
     temp_env = tmp_path / ".env"
     main_func = get_main_func(db)
 
@@ -74,7 +72,7 @@ async def test_smoke_ui_setup_needed(db, tmp_path):
         page.add = MagicMock()
         page.update = MagicMock()
 
-        await main_func(page)
+        main_func(page)
 
         assert page.add.called
         # Check that page added a Container representing the setup screen

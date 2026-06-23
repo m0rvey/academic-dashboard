@@ -34,12 +34,11 @@ def run_gui(db: IDatabaseManager) -> None:
         from bot import start_bot_in_thread
         start_bot_in_thread()
 
-    async def main(page: ft.Page) -> None:
+    def main(page: ft.Page) -> None:
         from src.core.config import ENV_PATH
         import os
         from dotenv import load_dotenv
 
-        main_loop = asyncio.get_running_loop()
         load_dotenv(dotenv_path=ENV_PATH, override=True)
         token = os.getenv("TELEGRAM_BOT_TOKEN")
         allowed_users = os.getenv("TELEGRAM_ALLOWED_USERS")
@@ -79,7 +78,7 @@ def run_gui(db: IDatabaseManager) -> None:
                     except Exception as ex:
                         log_text_field.value = f"Ошибка чтения логов: {ex}"
                 try:
-                    log_text_field.update()
+                    page.update()
                 except Exception:
                     pass
 
@@ -513,24 +512,20 @@ def run_gui(db: IDatabaseManager) -> None:
             trigger_data_update()
 
             # Database Observer (watchdog)
-            loop = main_loop
+            refresh_state = {"timer": None}
 
-            _refresh_lock = asyncio.Lock()
-            refresh_state = {"handle": None}
+            def _safe_refresh():
+                try:
+                    trigger_data_update()
+                except Exception as ex:
+                    logger.error(f"Error in _safe_refresh: {ex}")
 
             def _schedule_refresh():
-                if refresh_state["handle"] is not None:
-                    refresh_state["handle"].cancel()
-                refresh_state["handle"] = loop.call_later(0.3, lambda: page.run_task(_safe_refresh))
-
-            async def _safe_refresh():
-                if _refresh_lock.locked():
-                    return
-                async with _refresh_lock:
-                    try:
-                        trigger_data_update()
-                    except Exception as ex:
-                        logger.error(f"Error in _safe_refresh: {ex}")
+                if refresh_state["timer"] is not None:
+                    refresh_state["timer"].cancel()
+                t = threading.Timer(0.3, _safe_refresh)
+                refresh_state["timer"] = t
+                t.start()
 
             observer = Observer()
             handler = DBChangeHandler(_schedule_refresh)
@@ -538,6 +533,8 @@ def run_gui(db: IDatabaseManager) -> None:
             observer.start()
 
             def cleanup(e):
+                if refresh_state["timer"] is not None:
+                    refresh_state["timer"].cancel()
                 observer.stop()
                 observer.join()
                 db.rotate_local_backups()
@@ -594,7 +591,7 @@ def run_gui(db: IDatabaseManager) -> None:
                 helper_text="Адрес прокси/воркера (без /bot на конце для Cloudflare Workers)",
             )
 
-            async def save_credentials(e):
+            def save_credentials(e):
                 token_val = token_input.value.strip()
                 chat_id_val = chat_id_input.value.strip()
                 proxy_val = proxy_input.value.strip()
