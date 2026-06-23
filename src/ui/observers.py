@@ -9,5 +9,4 @@ class DBChangeHandler(FileSystemEventHandler):
 
     def on_modified(self, event):
         if any(event.src_path.endswith(ext) for ext in (".db_change", "planner.db", "planner.db-wal")):
-            loop = asyncio.get_running_loop()
-            loop.call_soon_threadsafe(self.schedule_refresh)
+            self.schedule_refresh()

@@ -1,27 +1,26 @@
-import asyncio
-
 from src.core.logger import setup_logger
 
 logger = setup_logger("notifications")
 
 
-async def notify_mac(title: str, subtitle: str, message: str):
-    """Отправка системного уведомления на macOS через AppleScript (osascript)."""
+def notify_mac(title: str, subtitle: str, message: str):
+    """Отправка системного уведомления на macOS через AppleScript (osascript) в фоновом потоке."""
+    import subprocess
+    import threading
+
     title_esc = title.replace('"', '\\"')
     sub_esc = subtitle.replace('"', '\\"')
     msg_esc = message.replace('"', '\\"')
 
     script = f'display notification "{msg_esc}" with title "{title_esc}" subtitle "{sub_esc}" sound name "Glass"'
-    try:
-        proc = await asyncio.create_subprocess_exec("osascript", "-e", script)
+    
+    def run():
         try:
-            await proc.wait()
-        except asyncio.CancelledError:
-            proc.terminate()
-            await proc.wait()
-            raise
-    except Exception as e:
-        logger.error(f"Ошибка при отправке уведомления macOS: {e}", exc_info=True)
+            subprocess.run(["osascript", "-e", script], capture_output=True)
+        except Exception as e:
+            logger.error(f"Ошибка при отправке уведомления macOS: {e}", exc_info=True)
+
+    threading.Thread(target=run, daemon=True).start()
 
 
 def send_desktop_notifications(
@@ -43,33 +42,24 @@ def send_desktop_notifications(
     try:
         today_tasks = db.get_tasks_by_date(today_date.isoformat())
         tomorrow_tasks = db.get_tasks_by_date(tomorrow_date.isoformat())
-
     except Exception as e:
         logger.warning(f"Error fetching tasks for notifications: {e}")
         today_tasks, tomorrow_tasks = [], []
 
     for t in today_tasks:
         if t.id not in notified_task_ids:
-            task_ref = asyncio.create_task(
-                notify_mac(
-                    title="Academic Dashboard",
-                    subtitle="Дедлайн сегодня!",
-                    message=f"Задача по предмету '{t.subject}': {t.description}",
-                )
+            notify_mac(
+                title="Academic Dashboard",
+                subtitle="Дедлайн сегодня!",
+                message=f"Задача по предмету '{t.subject}': {t.description}",
             )
-            active_notification_tasks.add(task_ref)
-            task_ref.add_done_callback(_on_notification_done)
             notified_task_ids.add(t.id)
 
     for t in tomorrow_tasks:
         if t.id not in notified_task_ids:
-            task_ref = asyncio.create_task(
-                notify_mac(
-                    title="Academic Dashboard",
-                    subtitle="Дедлайн завтра",
-                    message=f"Задача по предмету '{t.subject}': {t.description}",
-                )
+            notify_mac(
+                title="Academic Dashboard",
+                subtitle="Дедлайн завтра",
+                message=f"Задача по предмету '{t.subject}': {t.description}",
             )
-            active_notification_tasks.add(task_ref)
-            task_ref.add_done_callback(_on_notification_done)
             notified_task_ids.add(t.id)
