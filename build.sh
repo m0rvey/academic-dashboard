@@ -22,7 +22,7 @@ cp -R "dist/Academic Dashboard.app" build/dmg_root/
 if command -v create-dmg &> /dev/null; then
     echo "💿 Creating styled DMG installer..."
     create-dmg \
-      --volname "Academic Dashboard" \
+      --volname "Academic Dashboard Installer" \
       --background "assets/dmg_background.png" \
       --window-pos 200 120 \
       --window-size 600 400 \
@@ -35,7 +35,7 @@ if command -v create-dmg &> /dev/null; then
 else
     echo "⚠️ Warning: 'create-dmg' is not installed. Creating fallback standard DMG..."
     ln -s /Applications build/dmg_root/Applications
-    hdiutil create -volname "Academic Dashboard" -srcfolder build/dmg_root -ov -format UDZO "releases/AcademicDashboard_macos_universal.dmg"
+    hdiutil create -volname "Academic Dashboard Installer" -srcfolder build/dmg_root -ov -format UDZO "releases/AcademicDashboard_macos_universal.dmg"
 fi
 
 echo "✅ Build complete! Installer is available at: releases/AcademicDashboard_macos_universal.dmg"
