@@ -587,11 +587,11 @@ def run_gui(db: IDatabaseManager) -> None:
             )
             api_server_input = ft.TextField(
                 label="Кастомный API сервер (Опционально)",
-                hint_text="https://api.telegram-proxy.org/bot",
+                hint_text="https://tg-proxy-worker.username.workers.dev",
                 border_color=ft.Colors.LIGHT_BLUE_400,
                 border_radius=10,
                 width=450,
-                helper_text="Реверс-прокси для Telegram API (если не используется прокси)",
+                helper_text="Адрес прокси/воркера (без /bot на конце для Cloudflare Workers)",
             )
 
             async def save_credentials(e):

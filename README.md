@@ -186,12 +186,16 @@ PYTHONPATH=. python -m pytest tests/ -v
      async function handleRequest(request) {
        const url = new URL(request.url)
        url.hostname = 'api.telegram.org'
+       // Если в начале пути дублируется /bot/bot, обрезаем один из них
+       if (url.pathname.startsWith('/bot/bot')) {
+         url.pathname = url.pathname.replace('/bot/bot', '/bot')
+       }
        return fetch(url, request)
      }
      ```
   5. Нажмите **Deploy** в правом верхнем углу.
   6. Скопируйте адрес вашего воркера (например, `https://tg-proxy-worker.your-subdomain.workers.dev`).
-  7. Вставьте этот URL в поле **Кастомный API сервер** в приложении, добавив в конец `/bot` (например: `https://tg-proxy-worker.your-subdomain.workers.dev/bot`).
+  7. Вставьте этот URL в поле **Кастомный API сервер** в приложении (можно указывать как с `/bot` на конце, так и просто домен `https://tg-proxy-worker.your-subdomain.workers.dev` — бот поймет оба формата).
 
 ### 2. Использование HTTP / SOCKS5 прокси
 В поле **Прокси-сервер** вы можете указать ваш собственный прокси-сервер:
