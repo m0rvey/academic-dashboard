@@ -168,10 +168,11 @@ def run_gui(db: IDatabaseManager) -> None:
                 except Exception:
                     pass
 
-            async def bot_status_poll_loop():
+            def bot_status_poll_loop():
+                import time
                 while True:
                     update_bot_status()
-                    await asyncio.sleep(5)
+                    time.sleep(5)
 
             # Load session configuration
             config_path = db.db_path.parent / "session_config.json"
@@ -544,7 +545,7 @@ def run_gui(db: IDatabaseManager) -> None:
                 except Exception as ex:
                     logger.error(f"Error stopping bot on GUI exit: {ex}")
 
-            page.run_task(bot_status_poll_loop)
+            threading.Thread(target=bot_status_poll_loop, daemon=True).start()
             page.on_disconnect = cleanup
             page.update()
 
