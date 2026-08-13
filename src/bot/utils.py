@@ -9,3 +9,11 @@ def escape_md(text: str) -> str:
     if not text:
         return text
     return re.sub(rf"([{re.escape(_MD_V1_ESCAPE_CHARS)}])", r"\\\1", str(text))
+
+
+def mask_url_credentials(url: str) -> str:
+    """Маскирует пароль в строке подключения прокси или URL."""
+    if not url:
+        return ""
+    return re.sub(r"://([^:/@]+):(.*)@", r"://\1:***@", str(url))
+

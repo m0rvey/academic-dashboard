@@ -69,22 +69,18 @@ async def test_document_restore_path_traversal_sanitization():
 
 
 def test_proxy_url_credentials_masking():
-    import re
-
-    def mask_url(url: str) -> str:
-        if not url:
-            return ""
-        return re.sub(r"://([^:]+):([^@]+)@", r"://\1:***@", url)
+    from src.bot.utils import mask_url_credentials
 
     raw_socks = "socks5://user:secret_pass_123@192.168.1.1:1080"
-    masked_socks = mask_url(raw_socks)
+    masked_socks = mask_url_credentials(raw_socks)
     assert "secret_pass_123" not in masked_socks
     assert masked_socks == "socks5://user:***@192.168.1.1:1080"
 
     raw_http = "http://admin:my_strong_p@ss@proxy.domain.com:8080"
-    masked_http = mask_url(raw_http)
+    masked_http = mask_url_credentials(raw_http)
     assert "my_strong_p@ss" not in masked_http
     assert masked_http == "http://admin:***@proxy.domain.com:8080"
 
     no_auth = "http://127.0.0.1:8080"
-    assert mask_url(no_auth) == no_auth
+    assert mask_url_credentials(no_auth) == no_auth
+

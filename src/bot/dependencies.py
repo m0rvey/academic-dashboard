@@ -49,12 +49,7 @@ else:
     from aiogram.client.session.aiohttp import AiohttpSession
     from aiogram.client.telegram import TelegramAPIServer
 
-    def _mask_url_credentials(url: str) -> str:
-        import re
-
-        if not url:
-            return ""
-        return re.sub(r"://([^:]+):([^@]+)@", r"://\1:***@", url)
+    from src.bot.utils import mask_url_credentials
 
     proxy = os.getenv("TELEGRAM_PROXY")
     api_server = os.getenv("TELEGRAM_API_SERVER")
