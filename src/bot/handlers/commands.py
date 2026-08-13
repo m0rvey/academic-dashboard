@@ -4,7 +4,7 @@ from aiogram import F, Router
 from aiogram.exceptions import TelegramAPIError
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import FSInputFile, Message
+from aiogram.types import CallbackQuery, FSInputFile, Message
 
 from src.bot.dependencies import ADMIN_USERS
 from src.bot.state import BotState
@@ -90,3 +90,51 @@ async def check_load(message: Message, db: DatabaseManager, app_state: BotState)
         response += "🎉 Сегодня у вас нет невыполненных задач с дедлайном. Отдыхайте!"
 
     await message.answer(response, parse_mode="Markdown")
+
+
+
+def build_settings_keyboard(current_hour: int):
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+    text = (
+        "⚙️ *Настройки ежедневных напоминаний*\n\n"
+        f"Текущее время рассылки: *{current_hour:02d}:00*\n\n"
+        "Выберите удобное время для получения сводки по задачам:"
+    )
+    hours = [8, 9, 10, 12, 18, 21]
+    builder = InlineKeyboardBuilder()
+    for h in hours:
+        label = f"✅ {h:02d}:00" if h == current_hour else f"{h:02d}:00"
+        builder.button(text=label, callback_data=f"set_rem_{h}")
+    builder.adjust(3)
+    return text, builder.as_markup()
+
+
+@router.message(Command("settings"))
+async def settings_command(message: Message, db: DatabaseManager):
+    db.register_user(message.chat.id)
+    curr_hour = db.get_user_reminder_hour(message.chat.id)
+    text, markup = build_settings_keyboard(curr_hour)
+    await message.answer(text, parse_mode="Markdown", reply_markup=markup)
+
+
+@router.callback_query(F.data.startswith("set_rem_"))
+async def process_set_reminder_callback(callback: CallbackQuery, db: DatabaseManager):
+    try:
+        hour = int(callback.data.split("_")[-1])
+
+    except (IndexError, ValueError):
+        await callback.answer("❌ Ошибка при выборе времени.")
+        return
+
+    chat_id = callback.message.chat.id
+    if db.set_user_reminder_hour(chat_id, hour):
+        await callback.answer(f"⏰ Время напоминания установлено на {hour:02d}:00!")
+        text, markup = build_settings_keyboard(hour)
+        try:
+            await callback.message.edit_text(text, parse_mode="Markdown", reply_markup=markup)
+        except Exception:
+            pass
+    else:
+        await callback.answer("❌ Не удалось сохранить настройки.")
+

@@ -49,10 +49,12 @@ async def set_bot_commands():
         BotCommand(command="stats", description="Дашборд статистики (KPI)"),
         BotCommand(command="grades", description="Дашборд успеваемости (GPA)"),
         BotCommand(command="load", description="Нагрузка на сегодня"),
+        BotCommand(command="settings", description="Настройки времени напоминаний"),
         BotCommand(command="backup", description="Резервная копия базы данных"),
         BotCommand(command="cancel", description="Отменить создание задачи"),
     ]
     await bot.set_my_commands(bot_commands)
+
 
 
 async def main_bot():

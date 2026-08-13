@@ -411,11 +411,34 @@ def run_gui(db: IDatabaseManager) -> None:
                     app_state.mark_clean(idx)
                 page.update()
 
+            def handle_keyboard_shortcuts(e: ft.KeyboardEvent):
+                is_cmd_or_ctrl = e.ctrl or e.meta
+                if not is_cmd_or_ctrl:
+                    return
+
+                key_upper = (e.key or "").upper()
+                if key_upper == "N":
+                    open_add_dialog(None)
+                elif key_upper == "F":
+                    search_field.focus()
+                elif key_upper == "R":
+                    trigger_data_update()
+                    show_snack("🔄 Данные успешно обновлены")
+                elif key_upper == "T":
+                    toggle_theme(None)
+                    show_snack(
+                        f"🎨 Тема переключена на {'тёмную' if page.theme_mode == ft.ThemeMode.DARK else 'светлую'}"
+                    )
+
+
+            page.on_keyboard_event = handle_keyboard_shortcuts
+
             page.add(ft.Column([header_container, load_container, tabs], expand=True, spacing=20))
             page.floating_action_button = fab
 
             # Initial trigger to populate the UI
             trigger_data_update()
+
 
             # Database Observer (watchdog)
             refresh_state = {"timer": None}

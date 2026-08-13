@@ -141,3 +141,13 @@ class DatabaseManager(IDatabaseManager):
 
     def unregister_user(self, chat_id: int) -> bool:
         return self._user_repo.unregister_user(chat_id)
+
+    def get_user_reminder_hour(self, chat_id: int) -> int:
+        return self._user_repo.get_user_reminder_hour(chat_id)
+
+    def set_user_reminder_hour(self, chat_id: int, hour: int) -> bool:
+        return self._user_repo.set_user_reminder_hour(chat_id, hour)
+
+    def get_users_with_reminder_hour(self, hour: int) -> List[int]:
+        return self._user_repo.get_users_with_reminder_hour(hour)
+

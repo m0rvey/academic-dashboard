@@ -172,3 +172,12 @@ def run_migrations(conn: sqlite3.Connection) -> None:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_tasks_subject ON tasks(subject)")
         current_version = 5
         conn.execute("UPDATE schema_version SET version = ?", (current_version,))
+
+    if current_version < 6:
+        cursor = conn.execute("PRAGMA table_info(bot_users)")
+        cols = [r["name"] for r in cursor.fetchall()]
+        if "reminder_hour" not in cols:
+            conn.execute("ALTER TABLE bot_users ADD COLUMN reminder_hour INTEGER DEFAULT 9")
+        current_version = 6
+        conn.execute("UPDATE schema_version SET version = ?", (current_version,))
+

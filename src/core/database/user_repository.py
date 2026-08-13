@@ -32,3 +32,35 @@ class UserRepository:
             except sqlite3.Error as e:
                 conn.rollback()
                 raise e
+
+    def get_user_reminder_hour(self, chat_id: int) -> int:
+        with self.db_conn.connection() as conn:
+            cursor = conn.execute("SELECT reminder_hour FROM bot_users WHERE chat_id = ?", (chat_id,))
+            row = cursor.fetchone()
+            if row and row["reminder_hour"] is not None:
+                return int(row["reminder_hour"])
+            return 9
+
+    def set_user_reminder_hour(self, chat_id: int, hour: int) -> bool:
+        with self.db_conn.connection() as conn:
+            try:
+                conn.execute(
+                    "INSERT INTO bot_users (chat_id, reminder_hour) VALUES (?, ?) "
+                    "ON CONFLICT(chat_id) DO UPDATE SET reminder_hour = ?",
+                    (chat_id, hour, hour),
+                )
+                conn.commit()
+                return True
+            except sqlite3.Error:
+                conn.rollback()
+                return False
+
+
+    def get_users_with_reminder_hour(self, hour: int) -> List[int]:
+        with self.db_conn.connection() as conn:
+            cursor = conn.execute(
+                "SELECT chat_id FROM bot_users WHERE COALESCE(reminder_hour, 9) = ?",
+                (hour,),
+            )
+            return [row["chat_id"] for row in cursor.fetchall()]
+

@@ -248,3 +248,41 @@ async def test_process_delete_callback():
     cb.answer.assert_called_once()
     assert "удалена" in cb.answer.call_args[0][0]
 
+
+@pytest.mark.asyncio
+async def test_settings_command():
+    from src.bot.handlers.commands import settings_command
+
+    msg = _make_message("/settings")
+    mock_db = MagicMock()
+    mock_db.get_user_reminder_hour.return_value = 9
+
+    await settings_command(msg, db=mock_db)
+    mock_db.register_user.assert_called_once_with(123)
+    msg.answer.assert_called_once()
+    assert "Настройки" in msg.answer.call_args[0][0]
+
+
+@pytest.mark.asyncio
+async def test_process_set_reminder_callback():
+    from aiogram.types import CallbackQuery
+
+    from src.bot.handlers.commands import process_set_reminder_callback
+
+    cb = MagicMock(spec=CallbackQuery)
+    cb.data = "set_rem_18"
+    cb.answer = AsyncMock()
+    cb.message = MagicMock()
+    cb.message.chat = MagicMock()
+    cb.message.chat.id = 123
+    cb.message.edit_text = AsyncMock()
+
+    mock_db = MagicMock()
+    mock_db.set_user_reminder_hour.return_value = True
+
+    await process_set_reminder_callback(cb, db=mock_db)
+    mock_db.set_user_reminder_hour.assert_called_once_with(123, 18)
+    cb.answer.assert_called_once()
+    assert "18:00" in cb.answer.call_args[0][0]
+
+
