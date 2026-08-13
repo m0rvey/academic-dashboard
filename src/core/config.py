@@ -51,6 +51,7 @@ def validate_env(exit_on_error: bool = True) -> bool:
     import os
     import shutil
     import sys
+
     from dotenv import load_dotenv
 
     env_exists = ENV_PATH.exists()

@@ -111,16 +111,31 @@ def start_bot_in_thread():
 def stop_bot_in_thread():
     global bot_loop, bot_thread
     if bot_loop and bot_loop.is_running():
-        asyncio.run_coroutine_threadsafe(stop_bot(), bot_loop)
-    if bot_thread:
+        try:
+            future = asyncio.run_coroutine_threadsafe(stop_bot(), bot_loop)
+            future.result(timeout=2.0)
+        except Exception as ex:
+            logger.debug(f"Исключение при остановке бота: {ex}")
+
+    if bot_thread and bot_thread.is_alive():
         bot_thread.join(timeout=2.0)
+        bot_thread = None
+        bot_loop = None
         logger.info("Поток Telegram-бота остановлен.")
 
 
 async def stop_bot():
     logger.info("Остановка Telegram-бота...")
-    await dp.stop_polling()
-    await bot.session.close()
+    try:
+        await dp.stop_polling()
+    except Exception:
+        pass
+    if bot and bot.session:
+        try:
+            await bot.session.close()
+        except Exception:
+            pass
+
 
 
 if __name__ == "__main__":

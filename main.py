@@ -1,5 +1,8 @@
 import asyncio
+import atexit
+import signal
 import sys
+import warnings
 from datetime import date, datetime
 from typing import Optional
 
@@ -10,26 +13,55 @@ from src.core.logic import calculate_priority, check_daily_load, get_daily_load
 from src.core.models import Task, TaskStatus, get_clean_date
 from src.ui.views import run_gui
 
+# Глобальная политика циклов событий для предотвращения ошибок "There is no current event loop" в фоновых потоках
+try:
+    class GlobalEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
+        def get_event_loop(self):
+            try:
+                loop = super().get_event_loop()
+                if loop is not None and not loop.is_closed():
+                    self._loop = loop
+                return loop
+            except RuntimeError:
+                if not hasattr(self, "_loop") or self._loop is None or self._loop.is_closed():
+                    self._loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(self._loop)
+                return self._loop
 
-# Глобальная политика циклов событий для предотвращения ошибок "There is no current event loop" в фоновых потоках (например, ThreadPoolExecutor в Flet)
-class GlobalEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
-    def __init__(self):
-        super().__init__()
-        self._loop = None
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=DeprecationWarning)
+        asyncio.set_event_loop_policy(GlobalEventLoopPolicy())
+except Exception:
+    pass
 
-    def get_event_loop(self):
+
+
+def setup_signal_handlers() -> None:
+    """Перехватывает сигналы завершения (SIGINT, SIGTERM, SIGHUP) для корректного закрытия бота и Flet при закрытии терминала VS Code."""
+    def _handle_exit(signum=None, frame=None):
         try:
-            loop = super().get_event_loop()
-            if loop is not None:
-                self._loop = loop
-            return loop
-        except RuntimeError:
-            if self._loop is None or self._loop.is_closed():
-                self._loop = asyncio.new_event_loop()
-            return self._loop
+            from bot import stop_bot_in_thread
+            stop_bot_in_thread()
+        except Exception:
+            pass
+        sys.exit(0)
+
+    try:
+        from bot import stop_bot_in_thread
+        atexit.register(stop_bot_in_thread)
+    except Exception:
+        pass
+
+    for sig in (signal.SIGINT, signal.SIGTERM, getattr(signal, "SIGHUP", None)):
+        if sig is not None:
+            try:
+                signal.signal(sig, _handle_exit)
+            except (ValueError, OSError):
+                pass
 
 
-asyncio.set_event_loop_policy(GlobalEventLoopPolicy())
+setup_signal_handlers()
+
 
 
 def print_menu() -> None:
