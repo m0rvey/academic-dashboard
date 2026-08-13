@@ -1,252 +1,245 @@
-# 🎓 Academic Dashboard
+# 🎓 Academic Dashboard (macOS & Telegram)
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
-[![Flet](https://img.shields.io/badge/UI-Flet_0.25.2-purple.svg)](https://flet.dev/)
-[![Aiogram](https://img.shields.io/badge/Telegram_Bot-Aiogram_3-blue.svg)](https://docs.aiogram.dev/)
-[![SQLite](https://img.shields.io/badge/Database-SQLite3_WAL-green.svg)](https://sqlite.org/)
-[![Tests](https://img.shields.io/badge/Tests-96_passed_100%25-brightgreen.svg)](../tests/)
+[![UI](https://img.shields.io/badge/UI-Flet_0.25.2_(Cupertino)-purple.svg)](https://flet.dev/)
+[![Telegram Bot](https://img.shields.io/badge/Telegram_Bot-Aiogram_3-blue.svg)](https://docs.aiogram.dev/)
+[![Database](https://img.shields.io/badge/Database-SQLite3_WAL-green.svg)](https://sqlite.org/)
+[![Tests](https://img.shields.io/badge/Tests-99_passed_100%25-brightgreen.svg)](../tests/)
+[![Code Style](https://img.shields.io/badge/Code_Style-Ruff_0.9-black.svg)](https://github.com/astral-sh/ruff)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](../LICENSE)
 
-> **Personal academic workload planner and grade analytics system for students.**  
-> Features **three seamless interfaces** (Cross-Platform GUI / Interactive CLI / Telegram Bot) driven by a unified, highly modular core.
+> **Премиальный персональный дашборд академической нагрузки и успеваемости в нативном стиле macOS Cupertino.**  
+> Включает **3 интерфейса** (Десктопный GUI с Канбан-доской / Telegram-бот с быстрым управлением / Консольный CLI) с единым модульным ядром бизнес-логики и автоматической синхронизацией.
 
 ---
 
-[ **English** | [Русский](README_RU.md) ]
+[ 🇷🇺 **Русский** (Основной) | 🇬🇧 [English Version](README_EN.md) ]
 
 ---
 
-## 📑 Table of Contents
+## 📑 Оглавление
 
-- [Key Features](#-key-features)
-- [System Architecture](#-system-architecture)
-- [Mathematical Formulas & Logic](#-mathematical-formulas--logic)
-  - [Smart Task Priority](#smart-task-priority)
-  - [GPA & Target Grade Analytics](#gpa--target-grade-analytics)
-- [Natural Language Processing (NLP)](#-natural-language-processing-nlp)
-- [Getting Started](#-getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Environment Variables (`.env`)](#environment-variables-env)
-- [Usage Modes](#-usage-modes)
-  - [Graphical User Interface (GUI)](#1-graphical-user-interface-gui)
-  - [Interactive Command Line (CLI)](#2-interactive-command-line-cli)
-  - [Telegram Bot](#3-telegram-bot)
-- [Testing & Quality Assurance](#-testing--quality-assurance)
-- [License](#-license)
+- [✨ Основные возможности](#-основные-возможности)
+- [🖥️ Графический интерфейс macOS](#️-графический-интерфейс-macos)
+- [🤖 Telegram-бот (Smart Task IDs)](#-telegram-бот-smart-task-ids)
+- [🧮 Математические модели и алгоритмы](#-математические-модели-и-алгоритмы)
+- [🗣️ NLP-парсер русского языка](#️-nlp-парсер-русского-языка)
+- [🏗️ Архитектура системы](#️-архитектура-системы)
+- [🚀 Быстрый запуск](#-быстрый-запуск)
+  - [Требования](#требования)
+  - [Установка](#установка)
+  - [Настройка `.env`](#настройка-env)
+- [⌨️ Горячие клавиши (macOS Shortcuts)](#️-горячие-клавиши-macos-shortcuts)
+- [💡 Идеи для развития (Roadmap)](#-идеи-для-развития-roadmap)
+- [🧪 Тестирование](#-тестирование)
+- [📜 Лицензия](#-лицензия)
 
 ---
 
-## ✨ Key Features
+## ✨ Основные возможности
 
-- 📝 **Task Management (CRUD)** — Subject, description, deadline, effort score (1–10 scale), tags, and status tracking (TODO / DOING / DONE).
-- ⚡ **Smart Priority Scoring** — Dynamic priority calculation prioritizing urgent deadlines, heavy workloads, and crucial exam subjects (OGE / EGE / Final Exams).
-- 📊 **Workload Balance Control** — Daily recommended workload limit (10 units max) with visual progress indicators and overflow warnings.
-- 🎯 **GPA & Grade Target Analytics** — Constant-time \(O(1)\) analytical calculator predicting exact required grades to reach target GPAs.
-- 🗣️ **Russian Natural Language Parser** — Add tasks effortlessly in natural spoken Russian (e.g., `"домашка по физике лаба 3 на завтра сложность 4"`).
-- 🖥️ **4-Tab Desktop Interface & Hotkeys** — Built with Flet featuring Dark/Light themes, JSON import/export, macOS system notifications (`osascript`), and hotkeys (`Cmd+N`, `Cmd+F`, `Cmd+R`, `Cmd+T`).
-- 🤖 **Interactive Telegram Bot** — Aiogram 3 bot with FSM task creation, inline task action buttons (`[⚡ DOING]`, `[✅ DONE]`, `[🗑️ DELETE]`), custom `/settings` reminder hours, role authorization (fail-closed), daily automated reminders, and database backups.
-- 🔄 **Real-Time APFS Observer** — Reactive file-system watcher (`watchdog`) with timestamp triggers (`.db_change`), syncing GUI instantly when bot tasks change.
-- 💻 **Standalone CLI Mode** — Fully functional terminal user interface for server environments or low-resource systems.
+- 📋 **Управление задачами и дедлайнами** — CRUD операций, приоритеты, сложность (1–10), теги (`#ОГЭ`, `#ЕГЭ`, `#ДЗ`) и статусы (`TODO`, `DOING`, `DONE`).
+- 🗂️ **Два режима отображения** — Переключение в 1 клик между структурированным списком с группировкой по срочности и интерактивной **3-колоночной Канбан-доской**.
+- ⚡ **Динамическая приоритезация** — Аналитический расчёт приоритета: наверх поднимаются горящие сроки, высокая сложность и экзамены.
+- 🍩 **Современная аналитика** — Donut-диаграмма распределения нагрузки по дисциплинам с индикатором в центре, 7-дневный график завершённых задач и радар тегов.
+- 🎯 **GPA и калькулятор целей** — Точный расчёт GPA и аналитический калькулятор пятерок без перебора \(O(1)\) («Сколько пятёрок нужно до балла 4.75»).
+- 🌓 **Динамические темы (Dark / Light)** — Глубокий обсидиановый тёмный режим Deep Slate (`#0B0F19`) и чистый светлый режим (`#FFFFFF`).
+- 🤖 **Telegram-бот с удобной нумерацией** — Понятная нумерация задач `1.`, `2.`, быстрые действия `[⚡ #1 В процесс]`, `[✅ #1 Готово]` и умный `/done`.
+- 🔄 **Реактивная синхронизация** — Мгновенное обновление данных между ботом и приложением через SQLite WAL и оптимизированный файловый наблюдатель.
+- 💻 **Консольный режим CLI** — Автономная работа в терминале без GUI.
 
 ---
 
-## 🏗️ System Architecture
+## 🖥️ Графический интерфейс macOS
 
-The codebase enforces a clean separation of concerns, decoupling storage, logic, and interface layers:
+Приложение открывается во весь экран и повторяет дизайн-код macOS Cupertino:
 
 ```
-academic-dashboard/
-├── main.py                  # Primary application entry point (GUI / CLI launcher)
-├── bot.py                   # Telegram bot process launcher & thread runner
-├── pyproject.toml           # Project metadata, pytest & Ruff linter configuration
-├── requirements.txt         # Production dependencies
-├── docs/                    # Complete project documentation & guides
-│   ├── README.md            # English documentation
-│   └── README_RU.md         # Russian documentation
-├── data/                    # SQLite database and app runtime log directory
-├── src/
-│   ├── core/                # Business logic, algorithms, models, and DB layer
-│   │   ├── config.py        # Central configuration constants
-│   │   ├── interfaces.py    # Abstract base interfaces (IDatabaseManager)
-│   │   ├── logic.py         # Priority calculations & GPA algorithms
-│   │   ├── models.py        # Pydantic Task model validation & Enums
-│   │   ├── nlp_parser.py    # Natural language parsing engine
-│   │   ├── migrations.py    # SQLite schema migrations
-│   │   └── database/        # Modular Repository Pattern Layer
-│   │       ├── connection.py        # SQLite connection manager (WAL mode, Foreign Keys)
-│   │       ├── task_repository.py   # Task CRUD, filtering, tags & SQL priority sorting
-│   │       ├── grade_repository.py  # Grade statistics & subject GPA aggregations
-│   │       ├── stats_repository.py  # KPI metrics & 7-day workload distributions
-│   │       ├── backup_manager.py    # JSON export/import & local backup rotation
-│   │       ├── user_repository.py   # Telegram bot user authorization storage
-│   │       └── manager.py           # Unified DatabaseManager facade
-│   ├── ui/                  # Flet Desktop GUI Layer
-│   │   ├── constants.py     # Theme color tokens & styling constants
-│   │   ├── state.py         # Reactive AppState cache
-│   │   ├── components/      # UI components (KPI cards, Task cards, Desktop notifications)
-│   │   ├── dialogs/         # Modals (Add/Edit task, Delete confirmation)
-│   │   ├── tabs/            # Tab views (Tasks, Analytics, Grades, Calendar)
-│   │   └── views/           # Modular view screens (Main Dashboard, Log Console)
-│   └── bot/                 # Aiogram 3 Telegram Bot Layer
-│       ├── dependencies.py  # Bot instance & configuration loader
-│       ├── scheduler.py     # Async daily reminder scheduler
-│       ├── state.py         # In-memory bot cache
-│       ├── middlewares/     # RateLimit throttling, Auth, Dependency injection
-│       └── handlers/        # Command routers (/start, /add, /list, /stats, /grades, /backup)
-└── tests/                   # Pytest test suite (covering DB, Bot, Logic, UI)
+┌──────────────────────────────────────────────────────────────────────────────────────────┐
+│  Academic Dashboard                                                      [—] [□] [✕]      │
+├─────────────────┬────────────────────────────────────────────────────────────────────────┤
+│ 🎓 Academic     │ ⚡ Дневная нагрузка: 4 / 10 ед. [████████░░░░] 40%      [📥] [📤] [🌓]   │
+│    Dashboard    ├────────────────────────────────────────────────────────────────────────┤
+│                 │ [🔍 Поиск (Cmd+F)...] [Статус ▼] [Теги ▼] [Сортировка ▼] [📋] [🗂️] [🔄]│
+│ ➕ Новая задача │ [ Все задачи ] [ 🔥 Срочные ] [ 📅 На сегодня ] [ 🚨 Просрочено ]      │
+│                 │                                                                        │
+│ НАВИГАЦИЯ       │ ┌─ К выполнению (2) ─┐  ┌─ В процессе (1) ──┐  ┌─ Выполнено (4) ─────┐ │
+│ 📝 Задачи   (3) │ │ 📕 Математика      │  │ 📘 Физика         │  │ 📗 История           │ │
+│ 📊 Статистика   │ │    Лабораторная 4  │  │    Подготовка ОГЭ │  │    Конспект параграфа │ │
+│ 🎓 Успеваемость │ │ [⚡ Завтра] [⚡ 4]  │  │ [🔥 Сегодня!]      │  │ [Оценка: 5 ▼]         │ │
+│ 📅 Календарь    │ │ [⚡ В процесс]     │  │ [В план] [✅Готово]│  │ [↩️ Вернуть]          │ │
+│                 │ └────────────────────┘  └───────────────────┘  └─────────────────────┘ │
+│ ─────────────── │                                                                        │
+│ 🟢 Бот активен  │                                                                        │
+│ [ ⌨️ Cmd+/ ]    │                                                                        │
+└─────────────────┴────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🧮 Mathematical Formulas & Logic
+## 🤖 Telegram-бот (Smart Task IDs)
 
-### Smart Task Priority
+Бот на **Aiogram 3** оптимизирован для мгновенной работы на ходу:
 
-Each task's priority \(P\) is dynamically evaluated using the formula:
+- **Человекопонятная нумерация**: Задачи отображаются как `1. Предмет`, `2. Предмет`.
+- **Быстрый `/done`**:
+  - `/done` (без аргументов) — выводит интерактивную инлайн-клавиатуру со списком задач для завершения в один тап.
+  - `/done 1` — завершает задачу под номером 1 (или по исходному ID из БД).
+- **Команды бота**:
+  | Команда | Описание |
+  | :--- | :--- |
+  | `/start`, `/help` | Приветствие и полный справочник команд |
+  | `/list` | Интерактивный список активных задач с кнопками действий |
+  | `/done [N]` | Завершение задачи (в 1 клик или по номеру) |
+  | `/load` | Проверка дневной нагрузки и лимита |
+  | `/stats` | Сводка KPI, распределение предметов и тегов |
+  | `/grades` | Средний балл (GPA) и статистика оценок 5/4/3/2 |
+  | `/add [текст]` | Создание задачи через NLP-парсинг или диалог |
+  | `/settings` | Выбор времени ежедневной утренней сводки |
+  | `/backup` | Выгрузка дампа базы данных (для администраторов) |
+  | `/cancel` | Отмена активного создания задачи |
+
+---
+
+## 🧮 Математические модели и алгоритмы
+
+### Умный приоритет (Smart Priority Formula)
+Каждая задача ранжируется по формуле:
 
 $$P = \frac{\text{effort\_score}}{\text{days\_left} + 1} \times \text{exam\_multiplier}$$
 
-Where:
-- **`effort_score`**: Task difficulty rating on a scale of $1$ (Very Easy) to $10$ (Extreme).
-- **`days_left`**: Days remaining until the deadline ($\max(0, \text{deadline} - \text{today})$).
-- **`exam_multiplier`**: Set to $1.5$ if the task contains exam tags (`ОГЭ`, `ЕГЭ`, `Экзамен`), otherwise $1.0$.
+Где:
+- **`effort_score`**: Трудозатраты от $1$ (легко) до $10$ (сложно).
+- **`days_left`**: Дней до срока ($\max(0, \text{deadline} - \text{today})$).
+- **`exam_multiplier`**: $1.5$ для тегов `ОГЭ`, `ЕГЭ`, `Экзамен`, иначе $1.0$.
 
-### GPA & Target Grade Analytics
-
-To achieve a desired average grade $G_{\text{target}}$ given $N$ existing grades with sum $S$, the system computes the exact minimum number of additional straight 5s ($K_5$) needed in constant time $O(1)$:
+### Аналитический калькулятор GPA ($O(1)$)
+Минимальное число отличных оценок ($K_5$) для достижения целевого среднего балла $G_{\text{target}}$:
 
 $$K_5 = \left\lceil \frac{G_{\text{target}} \cdot N - S}{5 - G_{\text{target}}} \right\rceil$$
 
 ---
 
-## 🗣️ Natural Language Processing (NLP)
+## 🗣️ NLP-парсер русского языка
 
-The built-in Russian NLP parser converts free-form sentences into validated structured `Task` objects:
+Позволяет создавать задачи естественным языком без заполнения форм:
 
-```text
-Input:  "домашка по физике лаба 3 на завтра сложность 4 ОГЭ"
-Parsed: Subject = "Физика"
-        Description = "Лаба 3"
-        Deadline = tomorrow's date (YYYY-MM-DD)
-        Effort Score = 4
-        Tags = ["ОГЭ"]
-```
-
-Key capabilities:
-- **Relative Date Recognition**: `"сегодня"`, `"завтра"`, `"послезавтра"`, `"через 3 дня"`.
-- **Subject Extraction**: Recognizes school subjects and common abbreviations (`маша`/`математика`, `физра`, `обж`, `лит-ра`).
-- **Difficulty Inference**: Extracts numbers following keywords like `"сложность"`, `"сложность:"`, `"уровень"`.
+> `математика домашка лаба 3 до пятницы сложность 4 ОГЭ`  
+> ➔ **Предмет**: `Математика`, **Описание**: `Лаба 3`, **Дедлайн**: `Ближайшая пятница`, **Сложность**: `4`, **Тег**: `ОГЭ`.
 
 ---
 
-## 🚀 Getting Started
+## 🏗️ Архитектура системы
 
-### Prerequisites
+```
+academic-dashboard/
+├── main.py                  # Главная точка входа (GUI / CLI)
+├── bot.py                   # Модуль Telegram-бота и фоновый поток
+├── requirements.txt         # Зависимости проекта
+├── pyproject.toml           # Конфигурация Pytest и Ruff
+├── data/                    # База SQLite (academic.db) и резервные копии
+├── src/
+│   ├── core/                # Ядро бизнес-логики и SQLite репозитории
+│   │   ├── config.py        # Конфигурация и валидация .env
+│   │   ├── logic.py         # Алгоритмы приоритета, нагрузки и GPA
+│   │   ├── nlp_parser.py    # Парсер русского языка
+│   │   └── database/        # Менеджер БД и репозитории
+│   ├── ui/                  # Графический интерфейс на Flet
+│   │   ├── constants.py     # Цветовая палитра и токены тем
+│   │   ├── components/      # Карточки задач, Канбан-карточки, KPI
+│   │   ├── tabs/            # Вкладки (Задачи, Статистика, Оценки, Календарь)
+│   │   └── views/           # Главный контейнер и консоль отладки
+│   └── bot/                 # Модули Telegram-бота на Aiogram 3
+└── tests/                   # Набор из 99 автоматических тестов
+```
 
-- **Python 3.10+** installed on your system.
-- **Git** for repository cloning.
+---
 
-### Installation
+## 🚀 Быстрый запуск
 
-1. **Clone the repository:**
+### Требования
+- Python **3.10+** (протестировано на Python 3.10, 3.11, 3.12, 3.13, 3.14)
+- macOS / Linux / Windows
+
+### Установка
+
+1. **Клонируйте репозиторий:**
    ```bash
    git clone https://github.com/m0rvey/academic-dashboard.git
    cd academic-dashboard
    ```
 
-2. **Create and activate a virtual environment:**
+2. **Создайте и активируйте виртуальное окружение:**
    ```bash
    python3 -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   source .venv/bin/activate  # В Windows: .venv\Scripts\activate
    ```
 
-3. **Install dependencies:**
+3. **Установите зависимости:**
    ```bash
    pip install -r requirements.txt pytest pytest-asyncio ruff
    ```
 
-### Environment Variables (`.env`)
-
-Create a `.env` file in the root directory:
-
+### Настройка `.env`
+Создайте файл `.env` в корневой папке проекта:
 ```env
 TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
 TELEGRAM_ALLOWED_USERS=123456789
 TELEGRAM_ADMIN_USERS=123456789
-# Optional Proxy settings for restricted environments:
-# TELEGRAM_PROXY=socks5://username:password@ip:port
-# TELEGRAM_API_SERVER=https://tg-proxy-worker.username.workers.dev
 ```
 
----
-
-## 💻 Usage Modes
-
-### 1. Graphical User Interface (GUI)
-
-Launch the interactive desktop interface:
-
+Запуск десктопного приложения:
 ```bash
 .venv/bin/python main.py
 ```
 
-Features:
-- **Tasks Tab**: Filter by status/tag, search, sort by priority/deadline/effort, inline edit & completion.
-- **Analytics Tab**: Visual charts for subject workload, 7-day completion velocity, and KPI summaries.
-- **Grades Tab**: GPA distribution, subject grade tracker, target grade forecasting.
-- **Calendar Tab**: Month grid view showing scheduled task deadlines.
-- **Debug Console**: Click the Telegram Bot status badge to view live system logs and diagnostics.
-
-### 2. Interactive Command Line (CLI)
-
-Launch terminal mode:
-
+Запуск консольной версии (CLI):
 ```bash
 .venv/bin/python main.py --cli
 ```
 
-Provides an interactive console menu to add tasks, list items sorted by priority, inspect daily workload, and manage task statuses.
+---
 
-### 3. Telegram Bot
+## ⌨️ Горячие клавиши (macOS Shortcuts)
 
-Launch the Telegram bot independently:
-
-```bash
-.venv/bin/python bot.py
-```
-
-Available Bot Commands:
-- `/start` — Register user & view welcome instructions.
-- `/add` — Start interactive multi-step FSM task creation.
-- `/list` — View active tasks sorted by priority with inline quick-completion buttons.
-- `/stats` — Show KPI statistics dashboard.
-- `/grades` — View GPA summary & performance overview.
-- `/load` — Inspect current daily workload vs recommended limit.
-- `/backup` — Generate & receive database JSON backup (Admin only).
-- `/settings` — Configure reminder schedule time.
-- `/cancel` — Cancel current bot operation.
+| Сочетание клавиш | Действие |
+| :--- | :--- |
+| `Cmd + N` | Открыть модальное окно создания новой задачи |
+| `Cmd + F` | Быстрый фокус на строке поиска задач |
+| `Cmd + R` | Принудительно обновить данные и пересчитать аналитику |
+| `Cmd + T` | Мгновенно переключить тему (Тёмная / Светлая) |
+| `Cmd + 1` | Переключиться на вкладку **«Задачи»** |
+| `Cmd + 2` | Переключиться на вкладку **«Статистика»** |
+| `Cmd + 3` | Переключиться на вкладку **«Успеваемость»** |
+| `Cmd + 4` | Переключиться на вкладку **«Календарь»** |
+| `Cmd + /` или `?` | Открыть окно справки горячих клавиш |
 
 ---
 
-## 🧪 Testing & Quality Assurance
+## 💡 Идеи для развития (Roadmap)
 
-The project includes a comprehensive suite of automated unit and integration tests covering all modules:
+1. **🌐 WebDAV / iCloud / Google Drive Sync** — Облачная синхронизация базы данных между устройствами без центрального сервера.
+2. **🎙️ Голосовой ввод задач в боте** — Распознавание голосовых сообщений (Whisper / Telegram Voice) с автоматическим извлечением дедлайнов.
+3. **📅 Двусторонняя интеграция с Apple Calendar / Google Calendar (.ics)** — Экспорт расписания экзаменов и контрольных в нативные календари.
+4. **🤖 AI-генератор учебного плана** — Автоматическая разбивка больших проектов (курсовая, диплом, подготовка к ЕГЭ) на микро-задачи с равномерным распределением нагрузки.
+5. **📲 Push-уведомления через Telegram WebApp** — Полноценный встроенный WebApp мини-дашборд прямо внутри Telegram.
 
-Run the full test suite:
+---
+
+## 🧪 Тестирование
+
 ```bash
+# Запуск всех 99 тестов:
 .venv/bin/pytest tests/ -v
-```
 
-Run static code analysis and linting:
-```bash
+# Проверка линтером Ruff:
 .venv/bin/ruff check .
 ```
 
 ---
 
-## 📜 License
+## 📜 Лицензия
 
-This project is licensed under the **MIT License** — see the [LICENSE](../LICENSE) file for details.
+Распространяется под лицензией **MIT** — подробности в файле [LICENSE](../LICENSE).
 
-Copyright (c) 2026 **m0rvey**
+Автор: **m0rvey** (c) 2026

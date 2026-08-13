@@ -103,7 +103,21 @@ def start_bot_in_thread():
         except Exception as e:
             logger.error(f"Ошибка в потоке бота: {e}")
         finally:
-            loop.close()
+            try:
+                pending = asyncio.all_tasks(loop)
+                for t in pending:
+                    t.cancel()
+                if pending:
+                    loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                loop.run_until_complete(loop.shutdown_asyncgens())
+                if hasattr(loop, "shutdown_default_executor"):
+                    loop.run_until_complete(loop.shutdown_default_executor())
+            except Exception:
+                pass
+            try:
+                loop.close()
+            except Exception:
+                pass
 
     bot_thread = threading.Thread(target=_run, daemon=True)
     bot_thread.start()
@@ -132,6 +146,8 @@ def restart_bot_in_thread():
 
 async def stop_bot():
     logger.info("Остановка Telegram-бота...")
+    for t in list(_bg_tasks):
+        t.cancel()
     try:
         await dp.stop_polling()
     except Exception:
