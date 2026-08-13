@@ -1,13 +1,23 @@
 import flet as ft
 
 from src.core.grade_calculator import calculate_needed_grades
-from src.ui.constants import BG_CARD
+from src.core.logger import setup_logger
+from src.ui.components.kpi_card import create_kpi_card
+from src.ui.constants import (
+    BG_CARD,
+    BG_CARD_BORDER,
+    COLOR_DANGER,
+    COLOR_PRIMARY,
+    COLOR_SUCCESS,
+    COLOR_WARNING,
+)
+
+logger = setup_logger("grades_tab")
 
 
 def create_grades_tab(page: ft.Page, db):
     """Создаёт и возвращает содержимое вкладки «Успеваемость», диалог калькулятора и ссылки на обновляемые элементы."""
 
-    # Grades View Setup
     grades_kpi_row = ft.Row(spacing=10)
 
     grades_chart = ft.BarChart(
@@ -33,24 +43,25 @@ def create_grades_tab(page: ft.Page, db):
     grades_placeholder = ft.Container(
         content=ft.Column(
             [
-                ft.Icon(ft.Icons.SCHOOL_ROUNDED, size=64, color=ft.Colors.GREY_600),
+                ft.Icon(ft.Icons.SCHOOL_ROUNDED, size=56, color=ft.Colors.GREY_600),
                 ft.Text(
-                    "Нет данных по успеваемости",
-                    size=18,
+                    "Нет данных об успеваемости",
+                    size=16,
                     color=ft.Colors.WHITE,
                     weight=ft.FontWeight.BOLD,
                 ),
                 ft.Text(
-                    "Отмечайте задачи как выполненные и выставляйте им оценки в списке задач,\nчтобы увидеть статистику среднего балла по предметам.",
+                    "Выставляйте оценки за выполненные задачи, чтобы отслеживать GPA и динамику успеваемости.",
                     size=13,
-                    color=ft.Colors.GREY_500,
+                    color=ft.Colors.GREY_400,
                     text_align=ft.TextAlign.CENTER,
                 ),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=8,
         ),
-        padding=50,
+        padding=60,
         alignment=ft.alignment.center,
         visible=True,
     )
@@ -58,7 +69,7 @@ def create_grades_tab(page: ft.Page, db):
     grades_layout_container = ft.Column(
         [
             grades_kpi_row,
-            ft.Container(height=5),
+            ft.Container(height=4),
             ft.Row(
                 [
                     # Left panel
@@ -69,36 +80,29 @@ def create_grades_tab(page: ft.Page, db):
                                     [
                                         ft.Icon(
                                             ft.Icons.FACT_CHECK_ROUNDED,
-                                            color=ft.Colors.LIGHT_BLUE_200,
-                                            size=20,
+                                            color=COLOR_PRIMARY,
+                                            size=18,
                                         ),
                                         ft.Text(
-                                            "Успеваемость по предметам",
-                                            size=15,
+                                            "Средний балл по предметам",
+                                            size=14,
                                             weight=ft.FontWeight.BOLD,
                                             color=ft.Colors.WHITE,
                                         ),
                                     ],
-                                    spacing=6,
+                                    spacing=8,
                                 ),
-                                ft.Divider(color=ft.Colors.GREY_800, height=1),
+                                ft.Divider(color=BG_CARD_BORDER, height=1),
                                 ft.Container(
                                     content=subject_grades_list,
-                                    height=230,
-                                    padding=ft.padding.symmetric(vertical=5),
-                                ),
-                                ft.Text(
-                                    "*(средний балл по выполненным задачам)",
-                                    size=11,
-                                    color=ft.Colors.GREY_500,
-                                    italic=True,
+                                    height=240,
+                                    padding=ft.padding.symmetric(vertical=4),
                                 ),
                             ],
                             spacing=10,
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                         ),
                         bgcolor=BG_CARD,
-                        border=ft.border.all(1, ft.Colors.GREY_800),
+                        border=ft.border.all(1, BG_CARD_BORDER),
                         border_radius=12,
                         padding=16,
                         expand=True,
@@ -111,53 +115,60 @@ def create_grades_tab(page: ft.Page, db):
                                     [
                                         ft.Icon(
                                             ft.Icons.BAR_CHART_ROUNDED,
-                                            color=ft.Colors.LIGHT_BLUE_200,
-                                            size=20,
+                                            color=COLOR_PRIMARY,
+                                            size=18,
                                         ),
                                         ft.Text(
-                                            "График успеваемости",
-                                            size=15,
+                                            "График среднего балла",
+                                            size=14,
                                             weight=ft.FontWeight.BOLD,
                                             color=ft.Colors.WHITE,
                                         ),
                                     ],
-                                    spacing=6,
+                                    spacing=8,
                                 ),
-                                ft.Divider(color=ft.Colors.GREY_800, height=1),
+                                ft.Divider(color=BG_CARD_BORDER, height=1),
                                 ft.Container(
                                     content=grades_chart,
-                                    height=230,
-                                    padding=ft.padding.all(10),
-                                ),
-                                ft.Text(
-                                    "*(визуализация среднего балла по предметам)",
-                                    size=11,
-                                    color=ft.Colors.GREY_500,
-                                    italic=True,
+                                    height=240,
+                                    padding=ft.padding.all(8),
                                 ),
                             ],
                             spacing=10,
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                         ),
                         bgcolor=BG_CARD,
-                        border=ft.border.all(1, ft.Colors.GREY_800),
+                        border=ft.border.all(1, BG_CARD_BORDER),
                         border_radius=12,
                         padding=16,
                         expand=True,
                     ),
                 ],
-                spacing=15,
+                spacing=12,
                 expand=True,
             ),
         ],
         expand=True,
-        spacing=15,
+        spacing=12,
         visible=False,
     )
 
     # Target Calculator Dialog Setup
-    calc_subject = ft.Dropdown(label="Выберите предмет", width=280, border_color=ft.Colors.GREY_800)
-    calc_target = ft.Slider(min=2.0, max=5.0, divisions=30, value=4.5, label="{value}", width=280)
+    calc_subject = ft.Dropdown(
+        label="Выберите предмет",
+        width=300,
+        border_color=BG_CARD_BORDER,
+        focused_border_color=COLOR_PRIMARY,
+        border_radius=8,
+    )
+    calc_target = ft.Slider(
+        min=2.0,
+        max=5.0,
+        divisions=30,
+        value=4.75,
+        label="{value}",
+        width=300,
+        active_color=COLOR_PRIMARY,
+    )
     calc_target_grade = ft.Dropdown(
         label="Планируемая оценка",
         value="5",
@@ -165,13 +176,15 @@ def create_grades_tab(page: ft.Page, db):
             ft.dropdown.Option("5", "5 (Отлично)"),
             ft.dropdown.Option("4", "4 (Хорошо)"),
         ],
-        width=280,
-        border_color=ft.Colors.GREY_800,
+        width=300,
+        border_color=BG_CARD_BORDER,
+        focused_border_color=COLOR_PRIMARY,
+        border_radius=8,
     )
     calc_result_text = ft.Text(
         "Выберите предмет и целевой балл для расчета.",
         size=13,
-        color=ft.Colors.GREY_400,
+        color=ft.Colors.GREY_300,
         weight=ft.FontWeight.W_500,
     )
 
@@ -204,13 +217,13 @@ def create_grades_tab(page: ft.Page, db):
             )
         elif res == 0:
             calc_result_text.value = (
-                f"🟢 Вы уже достигли цели! Текущий балл по предмету '{subj}': {current_avg:.2f}\n"
+                f"🟢 Цель уже достигнута! Текущий балл по предмету '{subj}': {current_avg:.2f}\n"
                 f"Целевой балл: {target_gpa:.2f}"
             )
         else:
             calc_result_text.value = (
-                f"🎯 Чтобы достичь балла {target_gpa:.2f} (сейчас {current_avg:.2f}),\n"
-                f"вам нужно получить еще **{res}** шт. '{planned_g}' подряд!"
+                f"🎯 Чтобы повысить средний балл с {current_avg:.2f} до {target_gpa:.2f},\n"
+                f"вам нужно получить ещё **{res}** шт. '{planned_g}' подряд!"
             )
         page.update()
 
@@ -219,21 +232,43 @@ def create_grades_tab(page: ft.Page, db):
     calc_target_grade.on_change = run_calculator_logic
 
     calculator_dialog = ft.AlertDialog(
-        title=ft.Text("🎯 Калькулятор целевого балла", weight=ft.FontWeight.BOLD),
-        content=ft.Column(
+        title=ft.Row(
             [
-                calc_subject,
-                ft.Row(
-                    [ft.Text("Цель:", size=11, color=ft.Colors.GREY_400), calc_target],
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                ),
-                calc_target_grade,
-                ft.Divider(color=ft.Colors.GREY_800),
-                calc_result_text,
+                ft.Icon(ft.Icons.AUTO_AWESOME_ROUNDED, color=COLOR_PRIMARY, size=20),
+                ft.Text("Калькулятор целевого балла", weight=ft.FontWeight.BOLD, size=16),
             ],
-            tight=True,
-            spacing=15,
-            width=320,
+            spacing=8,
+        ),
+        content=ft.Container(
+            content=ft.Column(
+                [
+                    calc_subject,
+                    ft.Column(
+                        [
+                            ft.Row(
+                                [
+                                    ft.Text("Целевой GPA:", size=12, color=ft.Colors.GREY_400, weight=ft.FontWeight.W_600),
+                                    ft.Text(f"{calc_target.value:.2f}", size=12, color=COLOR_PRIMARY, weight=ft.FontWeight.BOLD),
+                                ],
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            ),
+                            calc_target,
+                        ],
+                        spacing=4,
+                    ),
+                    calc_target_grade,
+                    ft.Container(
+                        content=calc_result_text,
+                        bgcolor=ft.Colors.with_opacity(0.08, COLOR_PRIMARY),
+                        padding=12,
+                        border_radius=8,
+                        border=ft.border.all(1, ft.Colors.with_opacity(0.2, COLOR_PRIMARY)),
+                    ),
+                ],
+                tight=True,
+                spacing=12,
+                width=340,
+            ),
         ),
         actions=[ft.TextButton("Закрыть", on_click=lambda e: page.close(calculator_dialog))],
         actions_alignment=ft.MainAxisAlignment.END,
@@ -258,16 +293,21 @@ def create_grades_tab(page: ft.Page, db):
             [
                 ft.Row(
                     [
-                        ft.Text(
-                            "Успеваемость и оценки",
-                            size=18,
-                            weight=ft.FontWeight.BOLD,
-                            color=ft.Colors.LIGHT_BLUE_200,
+                        ft.Row(
+                            [
+                                ft.Icon(ft.Icons.SCHOOL_ROUNDED, color=COLOR_PRIMARY, size=20),
+                                ft.Text(
+                                    "Академическая успеваемость и GPA",
+                                    size=16,
+                                    weight=ft.FontWeight.BOLD,
+                                    color=ft.Colors.WHITE,
+                                ),
+                            ],
+                            spacing=8,
                         ),
-                        ft.IconButton(
-                            icon=ft.Icons.ADJUST,
-                            icon_color=ft.Colors.LIGHT_BLUE_200,
-                            tooltip="Калькулятор целей",
+                        ft.FilledButton(
+                            "Калькулятор целей",
+                            icon=ft.Icons.AUTO_AWESOME_ROUNDED,
                             on_click=open_calculator,
                         ),
                     ],
@@ -276,10 +316,10 @@ def create_grades_tab(page: ft.Page, db):
                 grades_placeholder,
                 grades_layout_container,
             ],
-            spacing=15,
+            spacing=12,
             expand=True,
         ),
-        padding=ft.padding.all(10),
+        padding=ft.padding.all(4),
     )
 
     return (
@@ -301,11 +341,6 @@ def update_grades_view(
     grades_chart,
 ) -> None:
     """Обновляет вкладку успеваемости: KPI оценок, список предметов с GPA и bar-chart."""
-    from src.core.logger import setup_logger
-    from src.ui.components.kpi_card import create_kpi_card
-
-    logger = setup_logger("grades_tab")
-
     try:
         grades_info = db.get_grades_stats()
         subj_gpas = db.get_subject_grades_gpa()
@@ -330,28 +365,28 @@ def update_grades_view(
 
         grades_kpi_row.controls = [
             create_kpi_card(
-                "Средний балл",
+                "Общий средний балл (GPA)",
                 f"{overall_gpa:.2f}",
-                ft.Icons.SCHOOL_ROUNDED,
-                ft.Colors.AMBER_400,
+                ft.Icons.AUTO_AWESOME_ROUNDED,
+                COLOR_PRIMARY,
             ),
             create_kpi_card(
                 "Всего оценок",
                 str(total_grades_count),
-                ft.Icons.GRADE_ROUNDED,
-                ft.Colors.BLUE_400,
+                ft.Icons.NUMBERS_ROUNDED,
+                COLOR_PRIMARY,
             ),
             create_kpi_card(
                 "Отлично (5) / Хорошо (4)",
                 f"{count_5} / {count_4}",
                 ft.Icons.STAR_ROUNDED,
-                ft.Colors.GREEN_400,
+                COLOR_SUCCESS,
             ),
             create_kpi_card(
                 "Удовл. (3) / Неудовл. (2)",
                 f"{count_3} / {count_2}",
-                ft.Icons.STAR_HALF_ROUNDED,
-                ft.Colors.ORANGE_400,
+                ft.Icons.WARNING_AMBER_ROUNDED,
+                COLOR_WARNING if count_3 > 0 or count_2 > 0 else ft.Colors.GREY_500,
             ),
         ]
 
@@ -362,43 +397,45 @@ def update_grades_view(
             gpa = data_dict["gpa"]
             count = data_dict["count"]
             if gpa >= 4.5:
-                bar_color = ft.Colors.GREEN_ACCENT_400
+                bar_color = COLOR_SUCCESS
             elif gpa >= 3.5:
-                bar_color = ft.Colors.AMBER_ACCENT_400
+                bar_color = COLOR_WARNING
             else:
-                bar_color = ft.Colors.RED_ACCENT_400
+                bar_color = COLOR_DANGER
 
             subject_grades_list.controls.append(
-                ft.Row(
-                    [
-                        ft.Container(
-                            content=ft.Text(
+                ft.Container(
+                    content=ft.Row(
+                        [
+                            ft.Text(
                                 subj,
-                                size=11,
+                                size=12,
                                 weight=ft.FontWeight.BOLD,
                                 color=ft.Colors.WHITE,
+                                width=110,
+                                no_wrap=True,
                             ),
-                            bgcolor=ft.Colors.BLUE_GREY_900,
-                            padding=ft.padding.symmetric(horizontal=8, vertical=4),
-                            border_radius=10,
-                            width=120,
-                        ),
-                        ft.ProgressBar(
-                            value=gpa / 5.0,
-                            color=bar_color,
-                            bgcolor=ft.Colors.GREY_800,
-                            expand=True,
-                            height=6,
-                        ),
-                        ft.Text(
-                            f"{gpa:.2f} ({count} оц.)",
-                            size=11,
-                            weight=ft.FontWeight.BOLD,
-                            color=ft.Colors.GREY_400,
-                        ),
-                    ],
-                    spacing=10,
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                            ft.ProgressBar(
+                                value=gpa / 5.0,
+                                color=bar_color,
+                                bgcolor=ft.Colors.with_opacity(0.1, ft.Colors.WHITE),
+                                expand=True,
+                                height=6,
+                                border_radius=4,
+                            ),
+                            ft.Text(
+                                f"{gpa:.2f} ({count} оц.)",
+                                size=11,
+                                weight=ft.FontWeight.W_600,
+                                color=bar_color,
+                                width=80,
+                                text_align=ft.TextAlign.RIGHT,
+                            ),
+                        ],
+                        spacing=10,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                    padding=ft.padding.symmetric(vertical=4),
                 )
             )
 
@@ -410,7 +447,7 @@ def update_grades_view(
                             from_y=0,
                             to_y=gpa,
                             color=bar_color,
-                            width=16,
+                            width=18,
                             border_radius=4,
                             tooltip=f"{subj}: {gpa:.2f}",
                         )
@@ -422,11 +459,12 @@ def update_grades_view(
                     value=idx,
                     label=ft.Container(
                         content=ft.Text(
-                            subj[:8] + ".." if len(subj) > 8 else subj,
+                            subj[:6] + ".." if len(subj) > 6 else subj,
                             size=9,
                             weight=ft.FontWeight.W_500,
+                            color=ft.Colors.GREY_400,
                         ),
-                        margin=ft.margin.only(top=5),
+                        margin=ft.margin.only(top=6),
                     ),
                 )
             )

@@ -1,6 +1,5 @@
-"""Константы пользовательского интерфейса Academic Dashboard."""
+"""Константы пользовательского интерфейса Academic Dashboard в стиле macOS Cupertino."""
 
-import flet as ft
 
 # Фильтры задач
 FILTER_ALL = "Все"
@@ -17,32 +16,48 @@ SORT_EFFORT = "Сложность (убыв.)"
 SORT_SUBJECT = "Предмет (А-Я)"
 SORT_PRIORITY = "Приоритет"
 
-# Цвета диаграмм
+# Быстрые фильтры-чипы
+CHIP_ALL = "Все задачи"
+CHIP_URGENT = "🔥 Срочные"
+CHIP_TODAY = "📅 На сегодня"
+CHIP_OVERDUE = "🚨 Просрочено"
+CHIP_EXAMS = "🎓 Экзамены"
+CHIP_DONE = "✅ Выполненные"
+
+# Цвета диаграмм (яркая современная палитра)
 CHART_COLORS = [
-    ft.Colors.BLUE_500,
-    ft.Colors.RED_500,
-    ft.Colors.GREEN_500,
-    ft.Colors.AMBER_500,
-    ft.Colors.PURPLE_500,
-    ft.Colors.CYAN_500,
-    ft.Colors.PINK_500,
-    ft.Colors.TEAL_500,
+    "#38BDF8",  # Sky Blue
+    "#F43F5E",  # Rose
+    "#10B981",  # Emerald
+    "#F59E0B",  # Amber
+    "#818CF8",  # Indigo
+    "#06B6D4",  # Cyan
+    "#EC4899",  # Pink
+    "#14B8A6",  # Teal
+    "#A855F7",  # Purple
 ]
 
-# Цвета фона (тёмная тема)
-BG_CARD = (
-    ft.Colors.SURFACE_CONTAINER_LOW
-    if hasattr(ft.Colors, "SURFACE_CONTAINER_LOW")
-    else ft.Colors.SURFACE_VARIANT
-    if hasattr(ft.Colors, "SURFACE_VARIANT")
-    else ft.Colors.GREY_900
-)
-BG_CARD_HOVER = (
-    ft.Colors.SURFACE_CONTAINER_HIGH
-    if hasattr(ft.Colors, "SURFACE_CONTAINER_HIGH")
-    else ft.Colors.SURFACE_VARIANT
-    if hasattr(ft.Colors, "SURFACE_VARIANT")
-    else ft.Colors.GREY_800
-)
-BG_DARK = ft.Colors.BACKGROUND if hasattr(ft.Colors, "BACKGROUND") else ft.Colors.BLACK
-BG_TODAY = ft.Colors.BLUE_900
+# Дизайн-токены палитры macOS
+COLOR_PRIMARY = "#38BDF8"       # Electric Sky Blue
+COLOR_PRIMARY_DARK = "#0284C7"
+COLOR_ACCENT_PURPLE = "#818CF8"  # Soft Indigo
+COLOR_SUCCESS = "#10B981"       # Emerald
+COLOR_WARNING = "#F59E0B"       # Amber
+COLOR_DANGER = "#F43F5E"        # Crimson Rose
+COLOR_MUTED = "#64748B"         # Slate Muted
+
+# Фоны для тёмной темы
+BG_DARK = "#0B0F19"             # Deep Space Obsidian
+BG_SIDEBAR = "#0F172A"          # Slate Sidebar
+BG_CARD = "#161F30"             # Frosted Card Base
+BG_CARD_HOVER = "#1E293B"       # Elevated Card Hover
+BG_CARD_BORDER = "#334155"      # Subtle Slate Border
+BG_CARD_BORDER_GLOW = "#38BDF8" # Focus Border
+BG_TODAY = "#1E3A8A"            # Deep Blue Highlight
+
+# Фоны для светлой темы
+BG_LIGHT = "#F8FAFC"
+BG_LIGHT_SIDEBAR = "#F1F5F9"
+BG_LIGHT_CARD = "#FFFFFF"
+BG_LIGHT_CARD_HOVER = "#F8FAFC"
+BG_LIGHT_BORDER = "#E2E8F0"

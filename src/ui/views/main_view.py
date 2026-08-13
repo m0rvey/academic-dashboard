@@ -10,9 +10,22 @@ from watchdog.observers import Observer
 from src.core.interfaces import IDatabaseManager
 from src.core.logger import setup_logger
 from src.ui.components.notifications import send_desktop_notifications
-from src.ui.constants import FILTER_ALL, FILTER_ALL_TAGS, SORT_PRIORITY
+from src.ui.constants import (
+    BG_CARD,
+    BG_CARD_BORDER,
+    BG_DARK,
+    BG_SIDEBAR,
+    COLOR_DANGER,
+    COLOR_PRIMARY,
+    COLOR_SUCCESS,
+    COLOR_WARNING,
+    FILTER_ALL,
+    FILTER_ALL_TAGS,
+    SORT_PRIORITY,
+)
 from src.ui.dialogs.add_edit_dialog import create_add_edit_dialog
 from src.ui.dialogs.delete_dialog import create_delete_dialog
+from src.ui.dialogs.shortcuts_dialog import create_shortcuts_dialog
 from src.ui.observers import DBChangeHandler
 from src.ui.state import AppState
 from src.ui.tabs.calendar_tab import create_calendar_tab
@@ -24,28 +37,9 @@ from src.ui.views.workload_indicator import create_workload_indicator
 
 logger = setup_logger("views")
 
-# Исправление бага Flet 0.25.2 на Python 3.9 (isinstance(self.__icon, IconValue) выводит TypeError в Tab.before_update)
-try:
-    import flet.core.tabs
-    from flet.core.types import IconEnums
-
-    def _safe_tab_before_update(self):
-        super(flet.core.tabs.Tab, self).before_update()
-        icon_margin = getattr(self, "_Tab__icon_margin", None)
-        if icon_margin is not None:
-            self._set_attr_json("iconMargin", icon_margin)
-        icon = getattr(self, "_Tab__icon", None)
-        if icon is not None:
-            self._set_enum_attr("icon", icon, IconEnums)
-
-    flet.core.tabs.Tab.before_update = _safe_tab_before_update
-except Exception as _ex:
-    logger.warning(f"Failed to patch flet Tab.before_update: {_ex}")
-
-
 
 def run_gui(db: IDatabaseManager) -> None:
-    """Запускает графический интерфейс приложения."""
+    """Запускает графический интерфейс приложения в стиле macOS Cupertino."""
     from src.core.config import validate_env
 
     if not validate_env(exit_on_error=True):
@@ -65,7 +59,13 @@ def run_gui(db: IDatabaseManager) -> None:
 
         load_dotenv(dotenv_path=ENV_PATH, override=True)
 
-
+        try:
+            page.window.min_width = 960
+            page.window.min_height = 640
+            page.window.width = 1120
+            page.window.height = 760
+        except Exception:
+            pass
 
         def _open_debug_console(e=None):
             show_debug_console(page)
@@ -73,14 +73,18 @@ def run_gui(db: IDatabaseManager) -> None:
         def show_dashboard():
             page.clean()
             page.title = "Academic Dashboard"
-            page.scroll = ft.ScrollMode.ADAPTIVE
-            page.padding = 20
-            page.horizontal_alignment = ft.CrossAxisAlignment.START
-            page.vertical_alignment = ft.MainAxisAlignment.START
+            page.padding = 0
+            page.spacing = 0
+            page.bgcolor = BG_DARK
 
-            # Bot status UI elements
-            bot_status_dot = ft.Icon(ft.Icons.CIRCLE, color=ft.Colors.RED_ACCENT, size=10)
-            bot_status_text = ft.Text("Бот: Неактивен", size=12, weight=ft.FontWeight.W_600, color=ft.Colors.GREY_300)
+            # Bot status UI badge
+            bot_status_dot = ft.Container(
+                width=8,
+                height=8,
+                border_radius=4,
+                bgcolor=COLOR_DANGER,
+            )
+            bot_status_text = ft.Text("Бот отключен", size=11, weight=ft.FontWeight.W_600, color=ft.Colors.GREY_300)
 
             bot_status_badge = ft.Container(
                 content=ft.Row(
@@ -88,15 +92,16 @@ def run_gui(db: IDatabaseManager) -> None:
                         bot_status_dot,
                         bot_status_text,
                     ],
-                    spacing=8,
+                    spacing=6,
                     alignment=ft.MainAxisAlignment.CENTER,
+                    tight=True,
                 ),
-                padding=ft.padding.symmetric(horizontal=12, vertical=6),
+                padding=ft.padding.symmetric(horizontal=10, vertical=5),
                 border_radius=8,
-                bgcolor=ft.Colors.GREY_900,
-                border=ft.border.all(1, ft.Colors.GREY_800),
+                bgcolor=ft.Colors.with_opacity(0.15, BG_CARD),
+                border=ft.border.all(1, BG_CARD_BORDER),
                 on_click=_open_debug_console,
-                tooltip="Статус Telegram-бота. Нажмите, чтобы открыть консоль отладки.",
+                tooltip="Статус Telegram-бота. Нажмите для открытия консоли отладки.",
             )
 
             def update_bot_status():
@@ -108,15 +113,15 @@ def run_gui(db: IDatabaseManager) -> None:
 
                 def _ui_update():
                     if active:
-                        bot_status_dot.color = ft.Colors.GREEN_ACCENT
-                        bot_status_text.value = "Бот: Активен"
-                        bot_status_text.color = ft.Colors.GREEN_100
-                        bot_status_badge.border = ft.border.all(1, ft.Colors.GREEN_800)
+                        bot_status_dot.bgcolor = COLOR_SUCCESS
+                        bot_status_text.value = "Бот активен"
+                        bot_status_text.color = COLOR_SUCCESS
+                        bot_status_badge.border = ft.border.all(1, ft.Colors.with_opacity(0.4, COLOR_SUCCESS))
                     else:
-                        bot_status_dot.color = ft.Colors.RED_ACCENT
-                        bot_status_text.value = "Бот: Неактивен"
-                        bot_status_text.color = ft.Colors.RED_100
-                        bot_status_badge.border = ft.border.all(1, ft.Colors.RED_800)
+                        bot_status_dot.bgcolor = COLOR_DANGER
+                        bot_status_text.value = "Бот отключен"
+                        bot_status_text.color = COLOR_DANGER
+                        bot_status_badge.border = ft.border.all(1, ft.Colors.with_opacity(0.4, COLOR_DANGER))
                     try:
                         bot_status_badge.update()
                     except Exception:
@@ -143,6 +148,7 @@ def run_gui(db: IDatabaseManager) -> None:
                 "filter_status": FILTER_ALL,
                 "filter_tag": FILTER_ALL_TAGS,
                 "sort_by": SORT_PRIORITY,
+                "active_nav": 0,
             }
             if config_path.exists():
                 try:
@@ -151,7 +157,7 @@ def run_gui(db: IDatabaseManager) -> None:
                 except Exception as ex:
                     logger.warning(f"Error loading session config: {ex}")
 
-            page.theme_mode = ft.ThemeMode.DARK if session_config["theme_mode"] == "dark" else ft.ThemeMode.LIGHT
+            page.theme_mode = ft.ThemeMode.DARK if session_config.get("theme_mode") == "dark" else ft.ThemeMode.LIGHT
 
             # Initialize global app state cache
             app_state = AppState(db)
@@ -160,6 +166,7 @@ def run_gui(db: IDatabaseManager) -> None:
             # State tracking variables
             notified_task_ids = set()
             last_notification_date_ref = [date.today()]
+            active_nav_index = [int(session_config.get("active_nav", 0))]
 
             config_write_lock = threading.Lock()
 
@@ -169,6 +176,7 @@ def run_gui(db: IDatabaseManager) -> None:
                     session_config["filter_status"] = filter_status.value
                     session_config["filter_tag"] = filter_tag.value
                     session_config["sort_by"] = sort_dropdown.value
+                    session_config["active_nav"] = active_nav_index[0]
                     try:
                         config_path.parent.mkdir(parents=True, exist_ok=True)
                         temp_fd, temp_path = tempfile.mkstemp(
@@ -189,8 +197,8 @@ def run_gui(db: IDatabaseManager) -> None:
 
             def toggle_theme(e):
                 page.theme_mode = ft.ThemeMode.LIGHT if page.theme_mode == ft.ThemeMode.DARK else ft.ThemeMode.DARK
-                theme_icon.icon = ft.Icons.DARK_MODE if page.theme_mode == ft.ThemeMode.DARK else ft.Icons.LIGHT_MODE
-                theme_icon.icon_color = ft.Colors.BLUE_GREY if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.AMBER
+                theme_icon.icon = ft.Icons.DARK_MODE_ROUNDED if page.theme_mode == ft.ThemeMode.DARK else ft.Icons.LIGHT_MODE_ROUNDED
+                theme_icon.icon_color = ft.Colors.BLUE_GREY if page.theme_mode == ft.ThemeMode.DARK else COLOR_WARNING
                 save_session_config()
                 page.update()
 
@@ -218,7 +226,7 @@ def run_gui(db: IDatabaseManager) -> None:
                 app_state.reload()
                 _update_load_indicator()
                 update_bot_status()
-                # Always run notifications check
+                _update_sidebar_badges()
                 send_desktop_notifications(
                     db,
                     notified_task_ids,
@@ -233,8 +241,9 @@ def run_gui(db: IDatabaseManager) -> None:
             _, open_delete_confirm = create_delete_dialog(
                 page, db, show_snack, lambda: trigger_data_update()
             )
+            shortcuts_dialog = create_shortcuts_dialog(page)
 
-            # Initialize Tabs
+            # Initialize Views
             (
                 tasks_view,
                 search_field,
@@ -243,6 +252,7 @@ def run_gui(db: IDatabaseManager) -> None:
                 sort_dropdown,
                 task_list,
             ) = create_tasks_tab(session_config, save_session_config, lambda: trigger_data_update())
+
             (
                 stats_view,
                 kpi_row,
@@ -262,94 +272,201 @@ def run_gui(db: IDatabaseManager) -> None:
                 subject_grades_list,
                 grades_chart,
             ) = create_grades_tab(page, db)
+
             calendar_view, update_calendar_grid = create_calendar_tab(db, page)
 
-            # Header bar setup
-            theme_icon = ft.IconButton(
-                icon=(ft.Icons.LIGHT_MODE if page.theme_mode == ft.ThemeMode.DARK else ft.Icons.DARK_MODE),
-                icon_color=(ft.Colors.AMBER if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLUE_GREY),
-                on_click=toggle_theme,
-                tooltip="Сменить тему",
+            view_contents = [tasks_view, stats_view, grades_view, calendar_view]
+            main_content_container = ft.Container(
+                content=view_contents[active_nav_index[0]],
+                expand=True,
+                padding=ft.padding.symmetric(horizontal=20, vertical=14),
             )
-            header = ft.Row(
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                controls=[
-                    ft.Row(
-                        [
-                            ft.Icon(
-                                ft.Icons.DASHBOARD_ROUNDED,
-                                color=ft.Colors.LIGHT_BLUE_200,
-                                size=28,
-                            ),
-                            ft.Text(
-                                "Академический дашборд",
-                                theme_style=ft.TextThemeStyle.HEADLINE_MEDIUM,
-                                weight=ft.FontWeight.BOLD,
-                                color=ft.Colors.LIGHT_BLUE_200,
-                            ),
-                        ],
-                        spacing=10,
-                    ),
-                    ft.Row(
-                        [
-                            bot_status_badge,
-                            ft.IconButton(
-                                icon=ft.Icons.DOWNLOAD_ROUNDED,
-                                icon_color=ft.Colors.LIGHT_BLUE_200,
-                                on_click=import_data,
-                                tooltip="Импорт из JSON",
-                            ),
-                            ft.IconButton(
-                                icon=ft.Icons.UPLOAD_ROUNDED,
-                                icon_color=ft.Colors.LIGHT_BLUE_200,
-                                on_click=export_data,
-                                tooltip="Экспорт в JSON",
-                            ),
-                            theme_icon,
-                        ],
-                        spacing=8,
-                    ),
-                ],
-            )
-            header_container = ft.Container(content=header, margin=ft.margin.only(bottom=10))
 
-            # Daily Workload indicators setup
+            # Task count badge in sidebar
+            tasks_badge_text = ft.Text("0", size=10, weight=ft.FontWeight.BOLD, color=COLOR_PRIMARY)
+            tasks_badge = ft.Container(
+                content=tasks_badge_text,
+                bgcolor=ft.Colors.with_opacity(0.18, COLOR_PRIMARY),
+                padding=ft.padding.symmetric(horizontal=7, vertical=2),
+                border_radius=10,
+                visible=False,
+            )
+
+            def _update_sidebar_badges():
+                try:
+                    active_tasks = app_state.get_active_tasks()
+                    cnt = len(active_tasks)
+                    if cnt > 0:
+                        tasks_badge_text.value = str(cnt)
+                        tasks_badge.visible = True
+                    else:
+                        tasks_badge.visible = False
+                    tasks_badge.update()
+                except Exception:
+                    pass
+
+            # Sidebar Navigation Items
+            nav_items_data = [
+                ("Задачи", ft.Icons.FORMAT_LIST_BULLETED_ROUNDED, tasks_badge),
+                ("Статистика", ft.Icons.INSIGHTS_ROUNDED, None),
+                ("Успеваемость", ft.Icons.SCHOOL_ROUNDED, None),
+                ("Календарь", ft.Icons.CALENDAR_MONTH_ROUNDED, None),
+            ]
+
+            nav_buttons = []
+
+            def switch_nav(idx: int):
+                active_nav_index[0] = idx
+                main_content_container.content = view_contents[idx]
+                save_session_config()
+                _update_sidebar_styles()
+                refresh_active_tab()
+                page.update()
+
+            def _update_sidebar_styles():
+                for idx, (btn, _, _) in enumerate(nav_buttons):
+                    is_active = idx == active_nav_index[0]
+                    btn.bgcolor = ft.Colors.with_opacity(0.15, COLOR_PRIMARY) if is_active else ft.Colors.TRANSPARENT
+                    btn.border = ft.border.all(1, ft.Colors.with_opacity(0.3, COLOR_PRIMARY)) if is_active else None
+                    btn.content.controls[0].controls[0].color = COLOR_PRIMARY if is_active else ft.Colors.GREY_400
+                    btn.content.controls[0].controls[1].color = ft.Colors.WHITE if is_active else ft.Colors.GREY_300
+                    btn.content.controls[0].controls[1].weight = ft.FontWeight.BOLD if is_active else ft.FontWeight.W_500
+
+            for idx, (title, icon, badge_elem) in enumerate(nav_items_data):
+                row_items = [
+                    ft.Icon(icon, size=18, color=ft.Colors.GREY_400),
+                    ft.Text(title, size=13, weight=ft.FontWeight.W_500, color=ft.Colors.GREY_300),
+                ]
+                btn_content = ft.Row(
+                    [
+                        ft.Row(row_items, spacing=10),
+                        *( [badge_elem] if badge_elem else [] ),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                )
+                btn = ft.Container(
+                    content=btn_content,
+                    padding=ft.padding.symmetric(horizontal=12, vertical=9),
+                    border_radius=8,
+                    on_click=lambda e, i=idx: switch_nav(i),
+                    animate=100,
+                )
+                nav_buttons.append((btn, title, icon))
+
+            _update_sidebar_styles()
+
+            # Sidebar layout
+            sidebar = ft.Container(
+                width=220,
+                bgcolor=BG_SIDEBAR,
+                border=ft.border.only(right=ft.BorderSide(1, BG_CARD_BORDER)),
+                padding=ft.padding.symmetric(horizontal=12, vertical=16),
+                content=ft.Column(
+                    [
+                        # Brand Header
+                        ft.Row(
+                            [
+                                ft.Container(
+                                    content=ft.Icon(ft.Icons.SCHOOL_ROUNDED, size=20, color=COLOR_PRIMARY),
+                                    bgcolor=ft.Colors.with_opacity(0.15, COLOR_PRIMARY),
+                                    padding=6,
+                                    border_radius=8,
+                                ),
+                                ft.Column(
+                                    [
+                                        ft.Text("Academic", size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+                                        ft.Text("Dashboard macOS", size=10, color=ft.Colors.GREY_400),
+                                    ],
+                                    spacing=0,
+                                ),
+                            ],
+                            spacing=10,
+                        ),
+                        ft.Container(height=10),
+                        # Quick Add Button
+                        ft.FilledButton(
+                            "Новая задача",
+                            icon=ft.Icons.ADD_ROUNDED,
+                            width=196,
+                            on_click=open_add_dialog,
+                        ),
+                        ft.Container(height=10),
+                        ft.Text("НАВИГАЦИЯ", size=10, color=ft.Colors.GREY_500, weight=ft.FontWeight.BOLD),
+                        ft.Column([b[0] for b in nav_buttons], spacing=4),
+                        ft.Container(expand=True),
+                        # Sidebar Footer with Bot status and hotkeys helper
+                        ft.Divider(color=BG_CARD_BORDER, height=1),
+                        ft.Row(
+                            [
+                                bot_status_badge,
+                                ft.IconButton(
+                                    icon=ft.Icons.KEYBOARD_ROUNDED,
+                                    icon_size=16,
+                                    icon_color=COLOR_PRIMARY,
+                                    tooltip="Горячие клавиши (Cmd+/)",
+                                    on_click=lambda e: page.open(shortcuts_dialog),
+                                ),
+                            ],
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        ),
+                    ],
+                    spacing=6,
+                    expand=True,
+                ),
+            )
+
+            # Daily Workload indicator
             load_container, _update_load_indicator = create_workload_indicator(db)
 
-            tabs = ft.Tabs(
-                selected_index=0,
-                animation_duration=250,
-                on_change=lambda e: refresh_active_tab(),
-                tabs=[
-                    ft.Tab(text="Задачи", icon=ft.Icons.LIST_ROUNDED, content=tasks_view),
-                    ft.Tab(
-                        text="Статистика",
-                        icon=ft.Icons.PIE_CHART_ROUNDED,
-                        content=stats_view,
-                    ),
-                    ft.Tab(
-                        text="Успеваемость",
-                        icon=ft.Icons.SCHOOL_ROUNDED,
-                        content=grades_view,
-                    ),
-                    ft.Tab(
-                        text="Календарь",
-                        icon=ft.Icons.CALENDAR_MONTH_ROUNDED,
-                        content=calendar_view,
-                    ),
-                ],
-                expand=True,
+            # Top action bar
+            theme_icon = ft.IconButton(
+                icon=(ft.Icons.LIGHT_MODE_ROUNDED if page.theme_mode == ft.ThemeMode.DARK else ft.Icons.DARK_MODE_ROUNDED),
+                icon_color=(COLOR_WARNING if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLUE_GREY),
+                on_click=toggle_theme,
+                tooltip="Сменить тему оформления (Cmd+T)",
             )
 
-            fab = ft.FloatingActionButton(
-                icon=ft.Icons.ADD_ROUNDED,
-                bgcolor=ft.Colors.LIGHT_BLUE_600,
-                on_click=open_add_dialog,
-                tooltip="Добавить задачу",
+            topbar = ft.Container(
+                content=ft.Row(
+                    [
+                        ft.Container(content=load_container, expand=True),
+                        ft.Row(
+                            [
+                                ft.IconButton(
+                                    icon=ft.Icons.FILE_DOWNLOAD_OUTLINED,
+                                    icon_color=COLOR_PRIMARY,
+                                    on_click=import_data,
+                                    tooltip="Импорт из JSON",
+                                ),
+                                ft.IconButton(
+                                    icon=ft.Icons.FILE_UPLOAD_OUTLINED,
+                                    icon_color=COLOR_PRIMARY,
+                                    on_click=export_data,
+                                    tooltip="Экспорт в JSON",
+                                ),
+                                theme_icon,
+                            ],
+                            spacing=4,
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                padding=ft.padding.only(left=20, right=20, top=14, bottom=6),
+            )
+
+            # Main content column
+            right_content = ft.Column(
+                [
+                    topbar,
+                    main_content_container,
+                ],
+                expand=True,
+                spacing=0,
             )
 
             def refresh_active_tab(e=None):
-                idx = tabs.selected_index
+                idx = active_nav_index[0]
                 if app_state.is_dirty(idx):
                     if idx == 0:
                         try:
@@ -363,6 +480,7 @@ def run_gui(db: IDatabaseManager) -> None:
                                 trigger_data_update,
                                 open_edit_dialog,
                                 open_delete_confirm,
+                                tasks_view=tasks_view,
                             )
                         except Exception as ex:
                             logger.error(f"Error in update_task_list: {ex}", exc_info=True)
@@ -410,6 +528,8 @@ def run_gui(db: IDatabaseManager) -> None:
                 if key_upper == "N":
                     open_add_dialog(None)
                 elif key_upper == "F":
+                    if active_nav_index[0] != 0:
+                        switch_nav(0)
                     search_field.focus()
                 elif key_upper == "R":
                     trigger_data_update()
@@ -419,29 +539,47 @@ def run_gui(db: IDatabaseManager) -> None:
                     show_snack(
                         f"🎨 Тема переключена на {'тёмную' if page.theme_mode == ft.ThemeMode.DARK else 'светлую'}"
                     )
-
+                elif key_upper in ("1", "2", "3", "4"):
+                    dest_idx = int(key_upper) - 1
+                    switch_nav(dest_idx)
+                elif key_upper in ("/", "?"):
+                    page.open(shortcuts_dialog)
 
             page.on_keyboard_event = handle_keyboard_shortcuts
 
-            page.add(ft.Column([header_container, load_container, tabs], expand=True, spacing=20))
-            page.floating_action_button = fab
+            page.floating_action_button = ft.FloatingActionButton(
+                icon=ft.Icons.ADD_ROUNDED,
+                bgcolor=COLOR_PRIMARY,
+                on_click=open_add_dialog,
+                tooltip="Новая задача (Cmd+N)",
+            )
+
+            # Master macOS Layout (Sidebar on the left, Views on the right)
+            page.add(
+                ft.Row(
+                    [
+                        sidebar,
+                        right_content,
+                    ],
+                    expand=True,
+                    spacing=0,
+                )
+            )
 
             # Initial trigger to populate the UI
             trigger_data_update()
-
 
             # Database Observer (watchdog)
             refresh_state = {"timer": None}
 
             def _safe_refresh():
                 try:
-                    # Считываем данные в фоновом потоке
                     app_state.reload()
 
-                    # Обновляем UI в основном потоке событий Flet
                     def _ui_update():
                         _update_load_indicator()
                         update_bot_status()
+                        _update_sidebar_badges()
                         send_desktop_notifications(
                             db,
                             notified_task_ids,
@@ -484,8 +622,6 @@ def run_gui(db: IDatabaseManager) -> None:
             page.on_disconnect = cleanup
             page.update()
 
-        # При старте всегда открываем главный интерфейс
         show_dashboard()
-
 
     ft.app(target=main)

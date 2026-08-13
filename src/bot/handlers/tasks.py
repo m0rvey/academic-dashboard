@@ -43,29 +43,30 @@ def build_task_list_payload(app_state: BotState):
         builder.adjust(2)
         return text, builder.as_markup()
 
-    response = "📋 *Список ваших активных задач (по приоритету):*\n\n"
-    status_emoji = {TaskStatus.TODO: "📝 TODO", TaskStatus.DOING: "⚡ DOING"}
+    response = "📋 *Список активных задач (по приоритету):*\n\n"
+    status_emoji = {TaskStatus.TODO: "📝", TaskStatus.DOING: "⚡"}
 
-    for task in sorted_tasks:
+    for idx, task in enumerate(sorted_tasks, start=1):
         priority = calculate_priority(task)
         tags_str = f" `[{', '.join(task.tags)}]`" if task.tags else ""
         escaped_subj = escape_md(task.subject)
         escaped_desc = escape_md(task.description)
+        st_icon = status_emoji.get(task.status, "📝")
         response += (
-            f"🆔 *ID: {task.id}* | {status_emoji.get(task.status, '📝')} *{escaped_subj}*{tags_str}\n"
-            f"🔹 *Описание:* {escaped_desc}\n"
-            f"📅 *Дедлайн:* {task.deadline} | 💪 *Сложность:* {task.effort_score} | 🌟 *Приоритет:* {priority:.2f}\n\n"
+            f"*{idx}.* {st_icon} *{escaped_subj}*{tags_str}\n"
+            f"   🔹 *Описание:* {escaped_desc}\n"
+            f"   📅 *Дедлайн:* {task.deadline} | 💪 *Сложность:* {task.effort_score} | 🌟 *Приоритет:* {priority:.2f}\n\n"
         )
 
     builder = InlineKeyboardBuilder()
-    for task in sorted_tasks:
+    for idx, task in enumerate(sorted_tasks, start=1):
         if task.status == TaskStatus.DOING:
-            builder.button(text=f"📝 #{task.id} Todo", callback_data=f"task_todo_{task.id}")
+            builder.button(text=f"📝 #{idx} Todo", callback_data=f"task_todo_{task.id}")
         else:
-            builder.button(text=f"⚡ #{task.id} В процесс", callback_data=f"task_doing_{task.id}")
+            builder.button(text=f"⚡ #{idx} В процесс", callback_data=f"task_doing_{task.id}")
 
-        builder.button(text=f"✅ #{task.id} Готово", callback_data=f"complete_{task.id}")
-        builder.button(text=f"🗑️ #{task.id}", callback_data=f"task_del_{task.id}")
+        builder.button(text=f"✅ #{idx} Готово", callback_data=f"complete_{task.id}")
+        builder.button(text=f"🗑️ #{idx}", callback_data=f"task_del_{task.id}")
 
     builder.button(text="🔄 Обновить список", callback_data="refresh_list")
     builder.button(text="➕ Новая задача", callback_data="add_task_start")
@@ -208,33 +209,64 @@ async def process_delete_callback(callback: CallbackQuery, db: DatabaseManager, 
 
 @router.message(Command("done"))
 async def complete_task_command(message: Message, db: DatabaseManager, app_state: BotState):
+    db.register_user(message.chat.id)
+    sorted_tasks = app_state.get_sorted_active_tasks()
     args = message.text.split(maxsplit=1)
+
     if len(args) < 2:
+        if not sorted_tasks:
+            await message.answer("🎉 *У вас нет активных задач для выполнения!*", parse_mode="Markdown")
+            return
+
+        builder = InlineKeyboardBuilder()
+        for idx, task in enumerate(sorted_tasks, start=1):
+            builder.button(text=f"✅ {idx}. {task.subject[:12]}", callback_data=f"complete_{task.id}")
+        builder.adjust(2)
+
         await message.answer(
-            "⚠️ Пожалуйста, укажите ID задачи. Например: `/done 5`",
+            "🎯 *Выберите задачу для завершения:*\n\n_(Или укажите номер, например: `/done 1`)_",
+            parse_mode="Markdown",
+            reply_markup=builder.as_markup(),
+        )
+        return
+
+    raw_arg = args[1].strip()
+    try:
+        num = int(raw_arg)
+    except ValueError:
+        await message.answer(
+            "❌ Пожалуйста, укажите номер задачи из списка (например: `/done 1`).",
             parse_mode="Markdown",
         )
         return
 
-    try:
-        task_id = int(args[1].strip())
-    except ValueError:
-        await message.answer("❌ Некорректный ID задачи. Введите целое число.")
+    # Check ordinal number first (1 <= num <= len(sorted_tasks))
+    target_task = None
+    if 1 <= num <= len(sorted_tasks):
+        target_task = sorted_tasks[num - 1]
+    else:
+        # Fallback to database ID lookup
+        target_task = db.get_task_by_id(num)
+
+    if not target_task:
+        await message.answer(
+            f"❌ Задача с номером или ID `{num}` не найдена.\n"
+            "Посмотрите актуальный список активных задач по команде /list.",
+            parse_mode="Markdown",
+        )
         return
 
-    task = db.get_task_by_id(task_id)
-    if not task:
-        await message.answer(f"❌ Задача с ID {task_id} не найдена в базе данных.")
+    if target_task.status == TaskStatus.DONE:
+        await message.answer(
+            f"ℹ️ Задача *{escape_md(target_task.subject)}* уже выполнена!",
+            parse_mode="Markdown",
+        )
         return
 
-    if task.status == TaskStatus.DONE:
-        await message.answer(f"ℹ️ Задача *{task.subject}* (ID: {task_id}) уже выполнена!")
-        return
-
-    if db.update_task_status(task_id, TaskStatus.DONE):
+    if db.update_task_status(target_task.id, TaskStatus.DONE):
         app_state.invalidate()
         await message.answer(
-            f"✅ *Задача выполнена!*\n• Предмет: *{escape_md(task.subject)}*\n• Описание: _{escape_md(task.description)}_",
+            f"✅ *Задача выполнена!*\n• Предмет: *{escape_md(target_task.subject)}*\n• Описание: _{escape_md(target_task.description)}_",
             parse_mode="Markdown",
         )
     else:

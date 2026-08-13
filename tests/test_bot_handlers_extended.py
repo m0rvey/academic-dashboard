@@ -94,12 +94,43 @@ async def test_list_handler_with_tasks():
 
 
 @pytest.mark.asyncio
+async def test_done_handler_no_args_with_tasks():
+    from src.bot.handlers.tasks import complete_task_command
+
+    msg = _make_message("/done")
+    task = Task(id=1, subject="Мат", description="Дз", deadline="2099-01-01", effort_score=5, status=TaskStatus.TODO)
+    mock_db = MagicMock()
+    mock_state = MagicMock()
+    mock_state.get_sorted_active_tasks.return_value = [task]
+
+    await complete_task_command(msg, db=mock_db, app_state=mock_state)
+    msg.answer.assert_called_once()
+    assert "Выберите задачу" in msg.answer.call_args[0][0]
+    assert msg.answer.call_args[1].get("reply_markup") is not None
+
+
+@pytest.mark.asyncio
+async def test_done_handler_no_args_empty():
+    from src.bot.handlers.tasks import complete_task_command
+
+    msg = _make_message("/done")
+    mock_db = MagicMock()
+    mock_state = MagicMock()
+    mock_state.get_sorted_active_tasks.return_value = []
+
+    await complete_task_command(msg, db=mock_db, app_state=mock_state)
+    msg.answer.assert_called_once()
+    assert "нет активных задач" in msg.answer.call_args[0][0]
+
+
+@pytest.mark.asyncio
 async def test_done_handler_invalid_id():
     from src.bot.handlers.tasks import complete_task_command
 
     msg = _make_message("/done abc")
     mock_db = MagicMock()
     mock_state = MagicMock()
+    mock_state.get_sorted_active_tasks.return_value = []
     await complete_task_command(msg, db=mock_db, app_state=mock_state)
     msg.answer.assert_called_once()
     assert "❌" in msg.answer.call_args[0][0]

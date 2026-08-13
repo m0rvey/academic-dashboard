@@ -30,23 +30,26 @@ async def send_daily_reminders():
                 if overdue or today_tasks:
                     from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+                    from src.bot.utils import escape_md
+
                     response = "🔔 *Ежедневная сводка по учебным задачам:*\n\n"
                     builder = InlineKeyboardBuilder()
 
                     all_reminder_tasks = list(overdue) + [t for t in today_tasks if t not in overdue]
 
                     if overdue:
-                        response += "🚨 *Просроченные задачи (сделайте в первую очередь!):*\n"
-                        for task in overdue:
-                            response += f"• ID {task.id} | *{task.subject}* (дедлайн: {task.deadline})\n"
+                        response += "🚨 *Просроченные задачи:*\n"
+                        for idx, task in enumerate(overdue, start=1):
+                            response += f"*{idx}.* *{escape_md(task.subject)}* (дедлайн: {task.deadline})\n"
                         response += "\n"
                     if today_tasks:
                         response += "📅 *Задачи на сегодня:*\n"
-                        for task in today_tasks:
-                            response += f"• ID {task.id} | *{task.subject}* (сложность: {task.effort_score} ед.)\n"
+                        offset = len(overdue)
+                        for idx, task in enumerate(today_tasks, start=offset + 1):
+                            response += f"*{idx}.* *{escape_md(task.subject)}* (сложность: {task.effort_score} ед.)\n"
 
-                    for task in all_reminder_tasks:
-                        builder.button(text=f"✅ #{task.id} {task.subject[:10]}", callback_data=f"complete_{task.id}")
+                    for idx, task in enumerate(all_reminder_tasks, start=1):
+                        builder.button(text=f"✅ {idx}. {task.subject[:12]}", callback_data=f"complete_{task.id}")
                     builder.adjust(2)
 
                     markup = builder.as_markup() if all_reminder_tasks else None

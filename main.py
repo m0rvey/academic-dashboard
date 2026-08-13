@@ -15,21 +15,22 @@ from src.ui.views import run_gui
 
 # Глобальная политика циклов событий для предотвращения ошибок "There is no current event loop" в фоновых потоках
 try:
-    class GlobalEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
-        def get_event_loop(self):
-            try:
-                loop = super().get_event_loop()
-                if loop is not None and not loop.is_closed():
-                    self._loop = loop
-                return loop
-            except RuntimeError:
-                if not hasattr(self, "_loop") or self._loop is None or self._loop.is_closed():
-                    self._loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(self._loop)
-                return self._loop
-
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=DeprecationWarning)
+
+        class GlobalEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
+            def get_event_loop(self):
+                try:
+                    loop = super().get_event_loop()
+                    if loop is not None and not loop.is_closed():
+                        self._loop = loop
+                    return loop
+                except RuntimeError:
+                    if not hasattr(self, "_loop") or self._loop is None or self._loop.is_closed():
+                        self._loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(self._loop)
+                    return self._loop
+
         asyncio.set_event_loop_policy(GlobalEventLoopPolicy())
 except Exception:
     pass
