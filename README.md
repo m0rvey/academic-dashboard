@@ -4,7 +4,7 @@
 [![Flet](https://img.shields.io/badge/UI-Flet_0.25.2-purple.svg)](https://flet.dev/)
 [![Aiogram](https://img.shields.io/badge/Telegram_Bot-Aiogram_3-blue.svg)](https://docs.aiogram.dev/)
 [![SQLite](https://img.shields.io/badge/Database-SQLite3_WAL-green.svg)](https://sqlite.org/)
-[![Tests](https://img.shields.io/badge/Tests-92_passed_100%25-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-96_passed_100%25-brightgreen.svg)](tests/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > **Personal academic workload planner and grade analytics system for students.**  
@@ -33,20 +33,23 @@
   - [Interactive Command Line (CLI)](#2-interactive-command-line-cli)
   - [Telegram Bot](#3-telegram-bot)
 - [Testing & Quality Assurance](#-testing--quality-assurance)
+- [Documentation & Architecture](#-documentation--architecture)
 - [License](#-license)
 
 ---
 
 ## ✨ Key Features
 
-- 📝 **Task Management (CRUD)** — Subject, description, deadline, effort score (1–10 scale), tags, and status tracking (TODO / IN PROGRESS / DONE).
+- 📝 **Task Management (CRUD)** — Subject, description, deadline, effort score (1–10 scale), tags, and status tracking (TODO / DOING / DONE).
 - ⚡ **Smart Priority Scoring** — Dynamic priority calculation prioritizing urgent deadlines, heavy workloads, and crucial exam subjects (OGE / EGE / Final Exams).
 - 📊 **Workload Balance Control** — Daily recommended workload limit (10 units max) with visual progress indicators and overflow warnings.
 - 🎯 **GPA & Grade Target Analytics** — Constant-time \(O(1)\) analytical calculator predicting exact required grades to reach target GPAs.
 - 🗣️ **Russian Natural Language Parser** — Add tasks effortlessly in natural spoken Russian (e.g., `"домашка по физике лаба 3 на завтра сложность 4"`).
-- 🖥️ **4-Tab Desktop Interface** — Built with Flet (Flutter engine for Python) featuring Dark/Light themes, JSON import/export, and live DB file-system observers.
-- 🤖 **Feature-Rich Telegram Bot** — Aiogram 3 bot with FSM task creation, rate-limiting throttle middleware, role authorization (fail-closed), daily automated reminders, and database backups.
+- 🖥️ **4-Tab Desktop Interface & Hotkeys** — Built with Flet featuring Dark/Light themes, JSON import/export, macOS system notifications (`osascript`), and hotkeys (`Cmd+N`, `Cmd+F`, `Cmd+R`, `Cmd+T`).
+- 🤖 **Interactive Telegram Bot** — Aiogram 3 bot with FSM task creation, inline task action buttons (`[⚡ DOING]`, `[✅ DONE]`, `[🗑️ DELETE]`), custom `/settings` reminder hours, role authorization (fail-closed), daily automated reminders, and database backups.
+- 🔄 **Real-Time APFS Observer** — Reactive file-system watcher (`watchdog`) with timestamp triggers (`.db_change`), syncing GUI instantly when bot tasks change.
 - 💻 **Standalone CLI Mode** — Fully functional terminal user interface for server environments or low-resource systems.
+
 
 ---
 
