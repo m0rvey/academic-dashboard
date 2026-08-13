@@ -339,6 +339,7 @@ def update_grades_view(
     grades_kpi_row,
     subject_grades_list,
     grades_chart,
+    is_dark: bool = True,
 ) -> None:
     """Обновляет вкладку успеваемости: KPI оценок, список предметов с GPA и bar-chart."""
     try:
@@ -369,24 +370,28 @@ def update_grades_view(
                 f"{overall_gpa:.2f}",
                 ft.Icons.AUTO_AWESOME_ROUNDED,
                 COLOR_PRIMARY,
+                is_dark=is_dark,
             ),
             create_kpi_card(
                 "Всего оценок",
                 str(total_grades_count),
                 ft.Icons.NUMBERS_ROUNDED,
                 COLOR_PRIMARY,
+                is_dark=is_dark,
             ),
             create_kpi_card(
                 "Отлично (5) / Хорошо (4)",
                 f"{count_5} / {count_4}",
                 ft.Icons.STAR_ROUNDED,
                 COLOR_SUCCESS,
+                is_dark=is_dark,
             ),
             create_kpi_card(
                 "Удовл. (3) / Неудовл. (2)",
                 f"{count_3} / {count_2}",
                 ft.Icons.WARNING_AMBER_ROUNDED,
                 COLOR_WARNING if count_3 > 0 or count_2 > 0 else ft.Colors.GREY_500,
+                is_dark=is_dark,
             ),
         ]
 

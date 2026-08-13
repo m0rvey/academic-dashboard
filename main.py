@@ -39,13 +39,15 @@ except Exception:
 
 def setup_signal_handlers() -> None:
     """Перехватывает сигналы завершения (SIGINT, SIGTERM, SIGHUP) для корректного закрытия бота и Flet при закрытии терминала VS Code."""
+    import os
+
     def _handle_exit(signum=None, frame=None):
         try:
             from bot import stop_bot_in_thread
             stop_bot_in_thread()
         except Exception:
             pass
-        sys.exit(0)
+        os._exit(0)
 
     try:
         from bot import stop_bot_in_thread

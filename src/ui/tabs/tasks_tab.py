@@ -4,10 +4,10 @@ import flet as ft
 
 from src.core.database import DatabaseManager
 from src.core.logger import setup_logger
-from src.core.models import TaskStatus
+from src.core.logic import calculate_priority
+from src.core.models import Task, TaskStatus
 from src.ui.components.task_card import TaskCard
 from src.ui.constants import (
-    BG_CARD,
     BG_CARD_BORDER,
     CHIP_ALL,
     CHIP_DONE,
@@ -28,125 +28,440 @@ from src.ui.constants import (
     STATUS_DOING,
     STATUS_DONE,
     STATUS_TODO,
+    get_theme_palette,
 )
 
 logger = setup_logger("tasks_tab")
 
 
-def create_tasks_tab(session_config, save_session_config, refresh_all):
-    """Создаёт и возвращает содержимое вкладки «Задачи» со списком/канбаном и фильтр-чипами."""
+class KanbanCard(ft.Container):
+    """Специализированная карточка задачи для колонок Канбан-доски с быстрыми действиями."""
 
-    active_chip = [session_config.get("active_chip", CHIP_ALL)]
-    view_mode = [session_config.get("view_mode", "list")]  # 'list' или 'kanban'
+    def __init__(
+        self,
+        task: Task,
+        db: DatabaseManager,
+        refresh_all,
+        open_edit_dialog,
+        open_delete_confirm,
+        is_dark: bool = True,
+    ):
+        super().__init__()
+        self.task = task
+        self.db = db
+        self.refresh_all = refresh_all
+        self.open_edit_dialog = open_edit_dialog
+        self.open_delete_confirm = open_delete_confirm
+        self.is_dark = is_dark
+        self.palette = get_theme_palette(is_dark)
 
-    def _on_filter_change(e):
-        task_list.display_count = 50
-        save_session_config()
-        refresh_all()
+        self.padding = ft.padding.all(12)
+        self.border_radius = 10
+        self.bgcolor = self.palette["bg_card"]
+        self.scale = 1.0
+        self.animate_scale = 150
 
-    def _reset_and_refresh(e):
-        task_list.display_count = 50
-        refresh_all()
+        self.priority = calculate_priority(self.task)
+        self.build_ui()
 
+    def _get_indicator_color(self) -> str:
+        if self.task.status == TaskStatus.DONE:
+            return COLOR_SUCCESS
+        elif self.task.status == TaskStatus.DOING:
+            return COLOR_WARNING
+        elif self.priority >= 2.5:
+            return COLOR_DANGER
+        elif self.priority >= 1.5:
+            return COLOR_WARNING
+        return COLOR_PRIMARY
+
+    def _get_deadline_chip(self) -> ft.Container:
+        try:
+            deadline_date = date.fromisoformat(self.task.deadline)
+            today = date.today()
+            delta_days = (deadline_date - today).days
+
+            if self.task.status == TaskStatus.DONE:
+                text = self.task.deadline
+                bg = ft.Colors.with_opacity(0.12, COLOR_SUCCESS)
+                color = COLOR_SUCCESS
+                icon = ft.Icons.CHECK_CIRCLE_OUTLINE
+            elif delta_days < 0:
+                text = f"Просрочено ({abs(delta_days)} д.)"
+                bg = ft.Colors.with_opacity(0.15, COLOR_DANGER)
+                color = COLOR_DANGER
+                icon = ft.Icons.WARNING_AMBER_ROUNDED
+            elif delta_days == 0:
+                text = "🔥 Сегодня!"
+                bg = ft.Colors.with_opacity(0.18, COLOR_DANGER)
+                color = COLOR_DANGER
+                icon = ft.Icons.TIMER
+            elif delta_days == 1:
+                text = "⚡ Завтра"
+                bg = ft.Colors.with_opacity(0.15, COLOR_WARNING)
+                color = COLOR_WARNING
+                icon = ft.Icons.ACCESS_TIME
+            else:
+                text = f"До {self.task.deadline}"
+                bg = ft.Colors.with_opacity(0.08, ft.Colors.BLUE_GREY)
+                color = self.palette["text_secondary"]
+                icon = ft.Icons.CALENDAR_TODAY
+        except Exception:
+            text = self.task.deadline
+            bg = ft.Colors.with_opacity(0.08, ft.Colors.BLUE_GREY)
+            color = self.palette["text_secondary"]
+            icon = ft.Icons.CALENDAR_TODAY
+
+        return ft.Container(
+            content=ft.Row(
+                [
+                    ft.Icon(icon, size=10, color=color),
+                    ft.Text(text, size=10, color=color, weight=ft.FontWeight.W_600),
+                ],
+                spacing=3,
+                tight=True,
+            ),
+            bgcolor=bg,
+            padding=ft.padding.symmetric(horizontal=6, vertical=3),
+            border_radius=6,
+        )
+
+    def _move_task(self, target_status: TaskStatus):
+        self.db.update_task_status(self.task.id, target_status)
+        self.refresh_all()
+
+    def build_ui(self):
+        indicator_color = self._get_indicator_color()
+
+        self.border = ft.Border(
+            left=ft.BorderSide(4, indicator_color),
+            top=ft.BorderSide(1, self.palette["bg_card_border"]),
+            right=ft.BorderSide(1, self.palette["bg_card_border"]),
+            bottom=ft.BorderSide(1, self.palette["bg_card_border"]),
+        )
+
+        is_done = self.task.status == TaskStatus.DONE
+        text_decor = ft.TextDecoration.LINE_THROUGH if is_done else None
+        text_color = self.palette["text_muted"] if is_done else self.palette["text_primary"]
+        desc_color = self.palette["text_muted"] if is_done else self.palette["text_secondary"]
+
+        # Теги
+        tags_ui = []
+        for t in self.task.tags:
+            is_exam = t in ("ОГЭ", "ЕГЭ", "Экзамен")
+            tag_color = COLOR_DANGER if is_exam else self.palette["text_secondary"]
+            tag_bg = ft.Colors.with_opacity(0.15, COLOR_DANGER) if is_exam else ft.Colors.with_opacity(0.1, ft.Colors.BLUE_GREY)
+            tags_ui.append(
+                ft.Container(
+                    content=ft.Text(f"#{t}", size=9, color=tag_color, weight=ft.FontWeight.W_600),
+                    bgcolor=tag_bg,
+                    padding=ft.padding.symmetric(horizontal=5, vertical=2),
+                    border_radius=4,
+                )
+            )
+
+        # Кнопки быстрых переходов
+        action_buttons = []
+        if self.task.status == TaskStatus.TODO:
+            action_buttons.append(
+                ft.TextButton(
+                    "⚡ В процесс",
+                    icon=ft.Icons.ARROW_FORWARD_ROUNDED,
+                    style=ft.ButtonStyle(
+                        color=COLOR_WARNING,
+                        padding=ft.padding.symmetric(horizontal=8, vertical=4),
+                        text_style=ft.TextStyle(size=11, weight=ft.FontWeight.BOLD),
+                    ),
+                    on_click=lambda e: self._move_task(TaskStatus.DOING),
+                )
+            )
+        elif self.task.status == TaskStatus.DOING:
+            action_buttons.append(
+                ft.TextButton(
+                    "В план",
+                    icon=ft.Icons.ARROW_BACK_ROUNDED,
+                    style=ft.ButtonStyle(
+                        color=COLOR_PRIMARY,
+                        padding=ft.padding.symmetric(horizontal=6, vertical=4),
+                        text_style=ft.TextStyle(size=10),
+                    ),
+                    on_click=lambda e: self._move_task(TaskStatus.TODO),
+                )
+            )
+            action_buttons.append(
+                ft.TextButton(
+                    "Готово",
+                    icon=ft.Icons.CHECK_ROUNDED,
+                    style=ft.ButtonStyle(
+                        color=COLOR_SUCCESS,
+                        padding=ft.padding.symmetric(horizontal=6, vertical=4),
+                        text_style=ft.TextStyle(size=11, weight=ft.FontWeight.BOLD),
+                    ),
+                    on_click=lambda e: self._move_task(TaskStatus.DONE),
+                )
+            )
+        elif self.task.status == TaskStatus.DONE:
+            action_buttons.append(
+                ft.TextButton(
+                    "Вернуть",
+                    icon=ft.Icons.REPLAY_ROUNDED,
+                    style=ft.ButtonStyle(
+                        color=COLOR_WARNING,
+                        padding=ft.padding.symmetric(horizontal=6, vertical=4),
+                        text_style=ft.TextStyle(size=10),
+                    ),
+                    on_click=lambda e: self._move_task(TaskStatus.DOING),
+                )
+            )
+            # Оценка в Kanban
+            def _on_grade(e):
+                val = int(e.control.value) if e.control.value != "None" else None
+                self.db.update_task_grade(self.task.id, val)
+                self.refresh_all()
+
+            action_buttons.append(
+                ft.Container(
+                    content=ft.Dropdown(
+                        value=(str(self.task.grade) if self.task.grade is not None else "None"),
+                        options=[
+                            ft.dropdown.Option("None", "—"),
+                            ft.dropdown.Option("5", "5 (Отл)"),
+                            ft.dropdown.Option("4", "4 (Хор)"),
+                            ft.dropdown.Option("3", "3 (Уд)"),
+                            ft.dropdown.Option("2", "2 (Неуд)"),
+                        ],
+                        width=82,
+                        text_size=10,
+                        content_padding=ft.padding.symmetric(horizontal=4, vertical=0),
+                        border_radius=6,
+                        border_color=ft.Colors.with_opacity(0.4, COLOR_SUCCESS),
+                        on_change=_on_grade,
+                    ),
+                    height=28,
+                    width=82,
+                )
+            )
+
+        self.content = ft.Column(
+            [
+                ft.Row(
+                    [
+                        ft.Text(
+                            self.task.subject,
+                            weight=ft.FontWeight.BOLD,
+                            size=13,
+                            color=text_color,
+                            style=ft.TextStyle(decoration=text_decor),
+                            expand=True,
+                            overflow=ft.TextOverflow.ELLIPSIS,
+                        ),
+                        ft.IconButton(
+                            icon=ft.Icons.EDIT_OUTLINED,
+                            icon_color=COLOR_PRIMARY,
+                            icon_size=14,
+                            tooltip="Редактировать",
+                            on_click=lambda e: self.open_edit_dialog(self.task),
+                            style=ft.ButtonStyle(padding=ft.padding.all(0)),
+                        ),
+                        ft.IconButton(
+                            icon=ft.Icons.DELETE_OUTLINE_ROUNDED,
+                            icon_color=COLOR_DANGER,
+                            icon_size=14,
+                            tooltip="Удалить",
+                            on_click=lambda e: self.open_delete_confirm(self.task.id, self.task.subject),
+                            style=ft.ButtonStyle(padding=ft.padding.all(0)),
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    spacing=2,
+                ),
+                *(
+                    [
+                        ft.Text(
+                            self.task.description,
+                            size=11,
+                            color=desc_color,
+                            max_lines=2,
+                            overflow=ft.TextOverflow.ELLIPSIS,
+                        )
+                    ]
+                    if self.task.description
+                    else []
+                ),
+                ft.Row(
+                    [
+                        self._get_deadline_chip(),
+                        ft.Container(
+                            content=ft.Row(
+                                [
+                                    ft.Icon(ft.Icons.BOLT, size=10, color=COLOR_WARNING),
+                                    ft.Text(f"{self.task.effort_score}", size=10, color=COLOR_WARNING, weight=ft.FontWeight.BOLD),
+                                ],
+                                spacing=2,
+                                tight=True,
+                            ),
+                            bgcolor=ft.Colors.with_opacity(0.1, COLOR_WARNING),
+                            padding=ft.padding.symmetric(horizontal=5, vertical=3),
+                            border_radius=6,
+                        ),
+                        *tags_ui,
+                    ],
+                    wrap=True,
+                    spacing=4,
+                ),
+                ft.Divider(color=self.palette["bg_card_border"], height=1),
+                ft.Row(
+                    action_buttons,
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+            ],
+            spacing=6,
+        )
+
+        def on_hover(e):
+            is_hovered = e.data == "true"
+            self.scale = 1.015 if is_hovered else 1.0
+            self.bgcolor = self.palette["bg_card_hover"] if is_hovered else self.palette["bg_card"]
+            self.shadow = (
+                ft.BoxShadow(
+                    blur_radius=10,
+                    color=ft.Colors.with_opacity(0.12, indicator_color),
+                    offset=ft.Offset(0, 3),
+                )
+                if is_hovered
+                else None
+            )
+            self.update()
+
+        self.on_hover = on_hover
+
+
+def create_tasks_tab(session_config: dict, save_session_config, refresh_all):
+    """Создаёт и возвращает содержимое вкладки «Задачи», включая фильтр-чипы и переключатель Список / Канбан."""
     search_field = ft.TextField(
-        hint_text="Поиск задач по предмету, описанию или тегу...",
-        expand=True,
+        hint_text="Поиск задач (Cmd+F)...",
         prefix_icon=ft.Icons.SEARCH_ROUNDED,
-        on_change=_reset_and_refresh,
+        expand=True,
+        text_size=12,
+        height=38,
+        content_padding=ft.padding.symmetric(horizontal=12, vertical=0),
         border_radius=10,
         border_color=BG_CARD_BORDER,
         focused_border_color=COLOR_PRIMARY,
-        content_padding=ft.padding.symmetric(horizontal=14, vertical=10),
-        dense=True,
+        on_change=lambda e: refresh_all(),
     )
 
     filter_status = ft.Dropdown(
         label="Статус",
+        value=session_config.get("filter_status", FILTER_ALL),
         options=[
             ft.dropdown.Option(FILTER_ALL),
             ft.dropdown.Option(STATUS_TODO),
             ft.dropdown.Option(STATUS_DOING),
             ft.dropdown.Option(STATUS_DONE),
         ],
-        value=session_config["filter_status"],
-        width=130,
-        on_change=_on_filter_change,
+        width=135,
+        text_size=12,
         border_radius=10,
         border_color=BG_CARD_BORDER,
         focused_border_color=COLOR_PRIMARY,
         dense=True,
+        on_change=lambda e: (save_session_config(), refresh_all()),
     )
 
     filter_tag = ft.Dropdown(
         label="Тег",
+        value=session_config.get("filter_tag", FILTER_ALL_TAGS),
         options=[ft.dropdown.Option(FILTER_ALL_TAGS)],
-        value=session_config["filter_tag"],
-        width=130,
-        on_change=_on_filter_change,
+        width=135,
+        text_size=12,
         border_radius=10,
         border_color=BG_CARD_BORDER,
         focused_border_color=COLOR_PRIMARY,
         dense=True,
+        on_change=lambda e: (save_session_config(), refresh_all()),
     )
 
     sort_dropdown = ft.Dropdown(
         label="Сортировка",
+        value=session_config.get("sort_by", SORT_PRIORITY),
         options=[
             ft.dropdown.Option(SORT_PRIORITY),
             ft.dropdown.Option(SORT_DEADLINE),
             ft.dropdown.Option(SORT_EFFORT),
             ft.dropdown.Option(SORT_SUBJECT),
         ],
-        value=session_config["sort_by"],
         width=175,
-        on_change=_on_filter_change,
+        text_size=12,
         border_radius=10,
         border_color=BG_CARD_BORDER,
         focused_border_color=COLOR_PRIMARY,
         dense=True,
+        on_change=lambda e: (save_session_config(), refresh_all()),
     )
 
-    # Быстрые фильтр-чипы
-    chips_list = [CHIP_ALL, CHIP_URGENT, CHIP_TODAY, CHIP_OVERDUE, CHIP_EXAMS, CHIP_DONE]
-    chips_controls = []
+    # Быстрые фильтры-чипы
+    active_chip = [CHIP_ALL]
+    chips_data = [
+        (CHIP_ALL, ft.Icons.ALL_INBOX_ROUNDED),
+        (CHIP_URGENT, ft.Icons.LOCAL_FIRE_DEPARTMENT_ROUNDED),
+        (CHIP_TODAY, ft.Icons.TODAY_ROUNDED),
+        (CHIP_OVERDUE, ft.Icons.WARNING_AMBER_ROUNDED),
+        (CHIP_EXAMS, ft.Icons.SCHOOL_ROUNDED),
+        (CHIP_DONE, ft.Icons.CHECK_CIRCLE_OUTLINE_ROUNDED),
+    ]
 
-    def set_chip(chip_name):
+    chip_buttons = []
+
+    def set_chip(chip_name: str):
         active_chip[0] = chip_name
-        session_config["active_chip"] = chip_name
-        _update_chips_ui()
+        for btn, name in chip_buttons:
+            is_sel = name == chip_name
+            btn.bgcolor = ft.Colors.with_opacity(0.18, COLOR_PRIMARY) if is_sel else ft.Colors.with_opacity(0.05, ft.Colors.WHITE)
+            btn.border = ft.border.all(1, COLOR_PRIMARY if is_sel else BG_CARD_BORDER)
+            btn.content.controls[1].color = COLOR_PRIMARY if is_sel else ft.Colors.GREY_300
+            btn.content.controls[1].weight = ft.FontWeight.BOLD if is_sel else ft.FontWeight.W_500
         refresh_all()
 
-    def _update_chips_ui():
-        for chip_btn, c_name in chips_controls:
-            is_sel = c_name == active_chip[0]
-            chip_btn.bgcolor = (
-                ft.Colors.with_opacity(0.18, COLOR_PRIMARY) if is_sel else ft.Colors.with_opacity(0.05, ft.Colors.WHITE)
-            )
-            chip_btn.border = ft.border.all(
-                1, COLOR_PRIMARY if is_sel else BG_CARD_BORDER
-            )
-            chip_btn.content.color = COLOR_PRIMARY if is_sel else ft.Colors.GREY_300
-
-    chips_row = ft.Row(spacing=8, scroll=ft.ScrollMode.AUTO)
-    for c_name in chips_list:
-        chip_btn = ft.Container(
-            content=ft.Text(c_name, size=12, weight=ft.FontWeight.W_600),
-            padding=ft.padding.symmetric(horizontal=12, vertical=6),
+    for name, icon in chips_data:
+        is_selected = name == active_chip[0]
+        btn = ft.Container(
+            content=ft.Row(
+                [
+                    ft.Icon(icon, size=13, color=COLOR_PRIMARY if is_selected else ft.Colors.GREY_400),
+                    ft.Text(name, size=11, weight=ft.FontWeight.BOLD if is_selected else ft.FontWeight.W_500, color=COLOR_PRIMARY if is_selected else ft.Colors.GREY_300),
+                ],
+                spacing=4,
+                tight=True,
+            ),
+            padding=ft.padding.symmetric(horizontal=10, vertical=5),
             border_radius=20,
-            on_click=lambda e, name=c_name: set_chip(name),
-            animate=150,
+            bgcolor=ft.Colors.with_opacity(0.18, COLOR_PRIMARY) if is_selected else ft.Colors.with_opacity(0.05, ft.Colors.WHITE),
+            border=ft.border.all(1, COLOR_PRIMARY if is_selected else BG_CARD_BORDER),
+            on_click=lambda e, n=name: set_chip(n),
+            animate=100,
         )
-        chips_controls.append((chip_btn, c_name))
-        chips_row.controls.append(chip_btn)
+        chip_buttons.append((btn, name))
 
-    _update_chips_ui()
+    chips_row = ft.Row(
+        [b[0] for b in chip_buttons],
+        wrap=True,
+        spacing=6,
+        run_spacing=4,
+    )
 
-    # Переключатель видов Список / Канбан
-    def toggle_view_mode(mode):
+    # Переключатель режимов отображения (Список / Канбан)
+    view_mode = [session_config.get("view_mode", "list")]
+
+    def toggle_view_mode(mode: str):
         view_mode[0] = mode
         session_config["view_mode"] = mode
+        save_session_config()
         btn_list.bgcolor = ft.Colors.with_opacity(0.2, COLOR_PRIMARY) if mode == "list" else ft.Colors.TRANSPARENT
         btn_kanban.bgcolor = ft.Colors.with_opacity(0.2, COLOR_PRIMARY) if mode == "kanban" else ft.Colors.TRANSPARENT
+        btn_list.update()
+        btn_kanban.update()
         refresh_all()
 
     btn_list = ft.IconButton(
@@ -198,7 +513,6 @@ def create_tasks_tab(session_config, save_session_config, refresh_all):
         expand=True,
         spacing=12,
         vertical_alignment=ft.CrossAxisAlignment.START,
-        scroll=ft.ScrollMode.AUTO,
     )
 
     content_area = ft.Container(
@@ -235,6 +549,7 @@ def update_task_list(
     open_edit_dialog,
     open_delete_confirm,
     tasks_view: ft.Column = None,
+    is_dark: bool = True,
 ) -> None:
     """Обновляет список задач в соответствии с активными чип-фильтрами и выбранным режимом (Список / Канбан)."""
     try:
@@ -296,12 +611,12 @@ def update_task_list(
     mode = tasks_view.view_mode[0] if tasks_view and hasattr(tasks_view, "view_mode") else "list"
 
     if mode == "kanban":
-        _render_kanban_view(sorted_tasks, db, refresh_all, open_edit_dialog, open_delete_confirm, tasks_view)
+        _render_kanban_view(sorted_tasks, db, refresh_all, open_edit_dialog, open_delete_confirm, tasks_view, is_dark=is_dark)
     else:
-        _render_list_view(sorted_tasks, db, refresh_all, open_edit_dialog, open_delete_confirm, task_list, tasks_view)
+        _render_list_view(sorted_tasks, db, refresh_all, open_edit_dialog, open_delete_confirm, task_list, tasks_view, is_dark=is_dark)
 
 
-def _render_list_view(sorted_tasks, db, refresh_all, open_edit_dialog, open_delete_confirm, task_list, tasks_view):
+def _render_list_view(sorted_tasks, db, refresh_all, open_edit_dialog, open_delete_confirm, task_list, tasks_view, is_dark: bool = True):
     """Отрисовывает задачи в виде структурированного списка с группировкой по срочности."""
     if tasks_view and hasattr(tasks_view, "content_area"):
         tasks_view.content_area.content = task_list
@@ -354,7 +669,7 @@ def _render_list_view(sorted_tasks, db, refresh_all, open_edit_dialog, open_dele
                 )
             )
             for t in group_to_render:
-                new_controls.append(TaskCard(t, db, refresh_all, open_edit_dialog, open_delete_confirm))
+                new_controls.append(TaskCard(t, db, refresh_all, open_edit_dialog, open_delete_confirm, is_dark=is_dark))
 
     add_section("Просроченные задачи", overdue, COLOR_DANGER, ft.Icons.WARNING_AMBER_ROUNDED)
     add_section("Задачи на сегодня", today_tasks_list, COLOR_WARNING, ft.Icons.TIMER_OUTLINED)
@@ -392,28 +707,48 @@ def _render_list_view(sorted_tasks, db, refresh_all, open_edit_dialog, open_dele
     task_list.controls = new_controls
 
 
-def _render_kanban_view(sorted_tasks, db, refresh_all, open_edit_dialog, open_delete_confirm, tasks_view):
-    """Отрисовывает задачи в виде 3 колонок Канбан-доски (TODO, DOING, DONE)."""
+def _render_kanban_view(sorted_tasks, db, refresh_all, open_edit_dialog, open_delete_confirm, tasks_view, is_dark: bool = True):
+    """Отрисовывает задачи в виде 3 интерактивных колонок Канбан-доски с адаптивными карточками."""
     if not tasks_view or not hasattr(tasks_view, "kanban_container"):
         return
 
     kanban_container = tasks_view.kanban_container
     tasks_view.content_area.content = kanban_container
+    palette = get_theme_palette(is_dark)
 
     todo_tasks = [t for t in sorted_tasks if t.status == TaskStatus.TODO]
     doing_tasks = [t for t in sorted_tasks if t.status == TaskStatus.DOING]
     done_tasks = [t for t in sorted_tasks if t.status == TaskStatus.DONE]
 
-    def build_column(title, count, tasks, color, icon):
+    def build_column(title, count, tasks, color, icon, target_status):
         card_items = []
-        for t in tasks:
-            card_items.append(TaskCard(t, db, refresh_all, open_edit_dialog, open_delete_confirm))
+        if not tasks:
+            card_items.append(
+                ft.Container(
+                    content=ft.Column(
+                        [
+                            ft.Icon(ft.Icons.INBOX_ROUNDED, size=28, color=palette["text_muted"]),
+                            ft.Text("Нет задач", size=12, color=palette["text_muted"], weight=ft.FontWeight.W_500),
+                        ],
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        spacing=4,
+                    ),
+                    padding=30,
+                    alignment=ft.alignment.center,
+                    border=ft.border.all(1, ft.Colors.with_opacity(0.15, palette["bg_card_border"])),
+                    border_radius=10,
+                )
+            )
+        else:
+            for t in tasks:
+                card_items.append(KanbanCard(t, db, refresh_all, open_edit_dialog, open_delete_confirm, is_dark=is_dark))
 
-        col_content = ft.Column(
+        col_content = ft.ListView(
             card_items,
-            scroll=ft.ScrollMode.AUTO,
             spacing=8,
             expand=True,
+            padding=ft.padding.only(right=4),
         )
 
         return ft.Container(
@@ -425,7 +760,7 @@ def _render_kanban_view(sorted_tasks, db, refresh_all, open_edit_dialog, open_de
                                 ft.Row(
                                     [
                                         ft.Icon(icon, size=16, color=color),
-                                        ft.Text(title, size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+                                        ft.Text(title, size=13, weight=ft.FontWeight.BOLD, color=palette["text_primary"]),
                                     ],
                                     spacing=6,
                                 ),
@@ -440,23 +775,26 @@ def _render_kanban_view(sorted_tasks, db, refresh_all, open_edit_dialog, open_de
                         ),
                         padding=ft.padding.symmetric(horizontal=12, vertical=8),
                         border_radius=10,
-                        bgcolor=BG_CARD,
-                        border=ft.border.all(1, BG_CARD_BORDER),
+                        bgcolor=palette["bg_card"],
+                        border=ft.border.all(1, palette["bg_card_border"]),
                     ),
-                    col_content,
+                    ft.Container(
+                        content=col_content,
+                        expand=True,
+                    ),
                 ],
                 spacing=8,
                 expand=True,
             ),
-            bgcolor=ft.Colors.with_opacity(0.04, ft.Colors.WHITE),
+            bgcolor=ft.Colors.with_opacity(0.04, palette["text_primary"]),
             border_radius=12,
-            border=ft.border.all(1, ft.Colors.with_opacity(0.1, ft.Colors.WHITE)),
-            padding=8,
+            border=ft.border.all(1, palette["bg_card_border"]),
+            padding=10,
             expand=True,
         )
 
     kanban_container.controls = [
-        build_column("К выполнению", len(todo_tasks), todo_tasks, COLOR_PRIMARY, ft.Icons.FORMAT_LIST_BULLETED_ROUNDED),
-        build_column("В процессе", len(doing_tasks), doing_tasks, COLOR_WARNING, ft.Icons.BOLT_ROUNDED),
-        build_column("Выполнено", len(done_tasks), done_tasks, COLOR_SUCCESS, ft.Icons.CHECK_CIRCLE_ROUNDED),
+        build_column("К выполнению", len(todo_tasks), todo_tasks, COLOR_PRIMARY, ft.Icons.FORMAT_LIST_BULLETED_ROUNDED, TaskStatus.TODO),
+        build_column("В процессе", len(doing_tasks), doing_tasks, COLOR_WARNING, ft.Icons.BOLT_ROUNDED, TaskStatus.DOING),
+        build_column("Выполнено", len(done_tasks), done_tasks, COLOR_SUCCESS, ft.Icons.CHECK_CIRCLE_ROUNDED, TaskStatus.DONE),
     ]

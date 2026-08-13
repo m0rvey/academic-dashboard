@@ -5,31 +5,39 @@ import flet as ft
 from src.core.logic import calculate_priority
 from src.core.models import Task, TaskStatus
 from src.ui.constants import (
-    BG_CARD,
-    BG_CARD_BORDER,
-    BG_CARD_HOVER,
     COLOR_DANGER,
     COLOR_PRIMARY,
     COLOR_SUCCESS,
     COLOR_WARNING,
+    get_theme_palette,
 )
 
 
 class TaskCard(ft.Container):
-    """Премиальный компонент карточки задачи в стиле macOS с бейджем обратного отсчета и hover-эффектом."""
+    """Премиальный компонент карточки задачи в стиле macOS с бейджем обратного отсчета, поддержкой тем и hover-эффектом."""
 
-    def __init__(self, task: Task, db, trigger_data_update, open_edit_dialog, open_delete_confirm):
+    def __init__(
+        self,
+        task: Task,
+        db,
+        trigger_data_update,
+        open_edit_dialog,
+        open_delete_confirm,
+        is_dark: bool = True,
+    ):
         super().__init__()
         self.task = task
         self.db = db
         self.trigger_data_update = trigger_data_update
         self.open_edit_dialog = open_edit_dialog
         self.open_delete_confirm = open_delete_confirm
+        self.is_dark = is_dark
+        self.palette = get_theme_palette(is_dark)
 
         self.key = f"task_{self.task.id}" if self.task.id is not None else None
         self.padding = ft.padding.symmetric(horizontal=16, vertical=12)
         self.border_radius = 12
-        self.bgcolor = BG_CARD
+        self.bgcolor = self.palette["bg_card"]
         self.scale = 1.0
         self.animate_scale = 150
         self.on_hover = self.card_hover
@@ -83,12 +91,12 @@ class TaskCard(ft.Container):
             else:
                 text = f"До {self.task.deadline}"
                 bg = ft.Colors.with_opacity(0.08, ft.Colors.BLUE_GREY)
-                color = ft.Colors.GREY_400
+                color = self.palette["text_secondary"]
                 icon = ft.Icons.CALENDAR_MONTH_OUTLINED
         except Exception:
             text = self.task.deadline
             bg = ft.Colors.with_opacity(0.08, ft.Colors.BLUE_GREY)
-            color = ft.Colors.GREY_400
+            color = self.palette["text_secondary"]
             icon = ft.Icons.CALENDAR_MONTH_OUTLINED
 
         return ft.Container(
@@ -110,16 +118,16 @@ class TaskCard(ft.Container):
 
         self.border = ft.Border(
             left=ft.BorderSide(4, indicator_color),
-            top=ft.BorderSide(1, BG_CARD_BORDER),
-            right=ft.BorderSide(1, BG_CARD_BORDER),
-            bottom=ft.BorderSide(1, BG_CARD_BORDER),
+            top=ft.BorderSide(1, self.palette["bg_card_border"]),
+            right=ft.BorderSide(1, self.palette["bg_card_border"]),
+            bottom=ft.BorderSide(1, self.palette["bg_card_border"]),
         )
 
         is_done = self.task.status == TaskStatus.DONE
         is_doing = self.task.status == TaskStatus.DOING
         text_decor = ft.TextDecoration.LINE_THROUGH if is_done else None
-        text_color = ft.Colors.GREY_400 if is_done else ft.Colors.WHITE
-        desc_color = ft.Colors.GREY_500 if is_done else ft.Colors.GREY_300
+        text_color = self.palette["text_muted"] if is_done else self.palette["text_primary"]
+        desc_color = self.palette["text_muted"] if is_done else self.palette["text_secondary"]
 
         # Статусный бейдж
         if is_done:
@@ -147,7 +155,7 @@ class TaskCard(ft.Container):
         tags_ui = [status_badge]
         for t in self.task.tags:
             is_exam = t in ("ОГЭ", "ЕГЭ", "Экзамен")
-            tag_color = COLOR_DANGER if is_exam else ft.Colors.BLUE_GREY_200
+            tag_color = COLOR_DANGER if is_exam else self.palette["text_secondary"]
             tag_bg = (
                 ft.Colors.with_opacity(0.15, COLOR_DANGER)
                 if is_exam
@@ -329,7 +337,7 @@ class TaskCard(ft.Container):
         indicator_color = self._get_indicator_color()
         is_hovered = e.data == "true"
         self.scale = 1.012 if is_hovered else 1.0
-        self.bgcolor = BG_CARD_HOVER if is_hovered else BG_CARD
+        self.bgcolor = self.palette["bg_card_hover"] if is_hovered else self.palette["bg_card"]
         self.shadow = (
             ft.BoxShadow(
                 blur_radius=12,

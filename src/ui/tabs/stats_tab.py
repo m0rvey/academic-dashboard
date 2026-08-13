@@ -17,10 +17,9 @@ logger = setup_logger("stats_tab")
 
 
 def create_stats_tab():
-    """Создаёт и возвращает содержимое вкладки «Статистика» и ссылки на обновляемые элементы."""
+    """Создаёт и возвращает содержимое вкладки «Статистика» с современным Donut-чартом и аналитикой."""
     kpi_row = ft.Row(spacing=10)
 
-    # Выпадающий список выбора периода
     period_dropdown = ft.Dropdown(
         label="Период",
         value="all",
@@ -38,10 +37,42 @@ def create_stats_tab():
         dense=True,
     )
 
-    stats_chart = ft.PieChart(sections=[], sections_space=3, center_space_radius=32, expand=True)
-    legend_wrap = ft.Row(wrap=True, spacing=8, run_spacing=4, alignment=ft.MainAxisAlignment.CENTER)
+    # Красивый Donut Chart со сводкой в центре
+    total_load_label = ft.Text("0", size=22, weight=ft.FontWeight.BOLD, color=COLOR_PRIMARY)
+    total_load_sub = ft.Text("ед. нагрузки", size=10, color=ft.Colors.GREY_400, weight=ft.FontWeight.W_500)
 
-    tag_load_list = ft.ListView(expand=True, spacing=8)
+    donut_center_widget = ft.Container(
+        content=ft.Column(
+            [
+                total_load_label,
+                total_load_sub,
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=0,
+        ),
+        alignment=ft.alignment.center,
+    )
+
+    stats_chart = ft.PieChart(
+        sections=[],
+        sections_space=3,
+        center_space_radius=52,
+        expand=True,
+    )
+
+    chart_stack = ft.Stack(
+        [
+            stats_chart,
+            donut_center_widget,
+        ],
+        width=200,
+        height=180,
+        alignment=ft.alignment.center,
+    )
+
+    legend_wrap = ft.Row(wrap=True, spacing=6, run_spacing=4, alignment=ft.MainAxisAlignment.CENTER)
+    tag_load_list = ft.ListView(expand=True, spacing=6)
 
     productivity_chart = ft.BarChart(
         bar_groups=[],
@@ -85,14 +116,14 @@ def create_stats_tab():
                 ft.Container(height=4),
                 ft.Row(
                     [
-                        # Левая панель - Дисциплины (PieChart + Legend)
+                        # Левая панель - Дисциплины (Donut + Center Info + Legend)
                         ft.Container(
                             content=ft.Column(
                                 [
                                     ft.Row(
                                         [
                                             ft.Icon(
-                                                ft.Icons.PIE_CHART_ROUNDED,
+                                                ft.Icons.DONUT_LARGE_ROUNDED,
                                                 color=COLOR_PRIMARY,
                                                 size=18,
                                             ),
@@ -107,18 +138,18 @@ def create_stats_tab():
                                     ),
                                     ft.Divider(color=BG_CARD_BORDER, height=1),
                                     ft.Container(
-                                        content=stats_chart,
-                                        height=170,
+                                        content=chart_stack,
+                                        height=180,
                                         alignment=ft.alignment.center,
-                                        padding=ft.padding.all(4),
+                                        padding=ft.padding.all(2),
                                     ),
                                     ft.Container(
                                         content=legend_wrap,
                                         alignment=ft.alignment.center,
-                                        padding=ft.padding.symmetric(vertical=4),
+                                        padding=ft.padding.symmetric(vertical=2),
                                     ),
                                 ],
-                                spacing=8,
+                                spacing=6,
                                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                             ),
                             bgcolor=BG_CARD,
@@ -150,7 +181,7 @@ def create_stats_tab():
                                     ft.Divider(color=BG_CARD_BORDER, height=1),
                                     ft.Container(
                                         content=productivity_chart,
-                                        height=210,
+                                        height=215,
                                         padding=ft.padding.all(6),
                                     ),
                                 ],
@@ -186,7 +217,7 @@ def create_stats_tab():
                                     ft.Divider(color=BG_CARD_BORDER, height=1),
                                     ft.Container(
                                         content=tag_load_list,
-                                        height=210,
+                                        height=215,
                                         padding=ft.padding.symmetric(vertical=4),
                                     ),
                                 ],
@@ -211,6 +242,8 @@ def create_stats_tab():
         expand=True,
     )
 
+    stats_view.total_load_label = total_load_label
+
     return (
         stats_view,
         kpi_row,
@@ -222,7 +255,7 @@ def create_stats_tab():
     )
 
 
-def update_kpi_cards(db, kpi_row, period_dropdown) -> None:
+def update_kpi_cards(db, kpi_row, period_dropdown, is_dark: bool = True) -> None:
     """Обновляет KPI-карточки данными из БД."""
     period = period_dropdown.value
     try:
@@ -245,6 +278,7 @@ def update_kpi_cards(db, kpi_row, period_dropdown) -> None:
             ft.Icons.FORMAT_LIST_BULLETED_ROUNDED,
             COLOR_PRIMARY,
             subtitle=f"Период: {period_dropdown.options[0].text if period == 'all' else period}",
+            is_dark=is_dark,
         ),
         create_kpi_card(
             "Выполнено",
@@ -252,6 +286,7 @@ def update_kpi_cards(db, kpi_row, period_dropdown) -> None:
             ft.Icons.CHECK_CIRCLE_ROUNDED,
             COLOR_SUCCESS,
             subtitle="Завершенные задачи",
+            is_dark=is_dark,
         ),
         create_kpi_card(
             "Просрочено",
@@ -259,6 +294,7 @@ def update_kpi_cards(db, kpi_row, period_dropdown) -> None:
             ft.Icons.WARNING_AMBER_ROUNDED,
             COLOR_DANGER if overdue_count > 0 else ft.Colors.GREY_500,
             subtitle="Требуют внимания",
+            is_dark=is_dark,
         ),
         create_kpi_card(
             "Срочные / Экзамены",
@@ -266,6 +302,7 @@ def update_kpi_cards(db, kpi_row, period_dropdown) -> None:
             ft.Icons.LOCAL_FIRE_DEPARTMENT_ROUNDED,
             COLOR_WARNING if high_priority_count > 0 else ft.Colors.GREY_500,
             subtitle="Высокий приоритет",
+            is_dark=is_dark,
         ),
     ]
 
@@ -278,8 +315,9 @@ def update_stats_charts(
     tag_load_list,
     period_dropdown,
     get_subject_color,
+    stats_view: ft.Container = None,
 ) -> None:
-    """Обновляет графики статистики: PieChart, BarChart продуктивности и нагрузку по тегам."""
+    """Обновляет графики статистики: Donut Chart, BarChart продуктивности и нагрузку по тегам."""
     period = period_dropdown.value
     try:
         subjects_load = db.get_subject_load(period)
@@ -287,20 +325,32 @@ def update_stats_charts(
         logger.warning(f"Error getting subject load: {e}")
         subjects_load = {}
 
-    # 1. Pie Chart + Legend
+    total_units = sum(subjects_load.values()) if subjects_load else 0
+    if stats_view and hasattr(stats_view, "total_load_label"):
+        stats_view.total_load_label.value = str(total_units)
+
+    # 1. Donut Chart + Legend
     sections = []
     legend_wrap.controls.clear()
-    if not subjects_load:
-        sections.append(ft.PieChartSection(1, title="Нет задач", color=ft.Colors.GREY_700, radius=36))
+    if not subjects_load or total_units == 0:
+        sections.append(
+            ft.PieChartSection(
+                1,
+                title="",
+                color=ft.Colors.with_opacity(0.15, ft.Colors.GREY_700),
+                radius=26,
+            )
+        )
     else:
         for subj, val in subjects_load.items():
             subj_color = get_subject_color(subj)
+            percent = int((val / total_units) * 100) if total_units > 0 else 0
             sections.append(
                 ft.PieChartSection(
                     val,
-                    title=f"{val}",
+                    title=f"{percent}%" if percent >= 8 else "",
                     color=subj_color,
-                    radius=42,
+                    radius=28,
                     title_style=ft.TextStyle(size=10, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
                 )
             )
@@ -309,7 +359,7 @@ def update_stats_charts(
                     content=ft.Row(
                         [
                             ft.Container(width=8, height=8, border_radius=4, bgcolor=subj_color),
-                            ft.Text(f"{subj}: {val} ед.", size=10, color=ft.Colors.GREY_300, weight=ft.FontWeight.W_500),
+                            ft.Text(f"{subj}: {val} ед. ({percent}%)", size=10, color=ft.Colors.GREY_300, weight=ft.FontWeight.W_500),
                         ],
                         spacing=4,
                         tight=True,

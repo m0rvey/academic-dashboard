@@ -122,8 +122,12 @@ def stop_bot_in_thread():
     if bot_thread and bot_thread.is_alive():
         bot_thread.join(timeout=2.0)
         bot_thread = None
-        bot_loop = None
         logger.info("Поток Telegram-бота остановлен.")
+
+
+def restart_bot_in_thread():
+    stop_bot_in_thread()
+    start_bot_in_thread()
 
 
 async def stop_bot():

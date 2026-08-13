@@ -1,6 +1,5 @@
 """Константы пользовательского интерфейса Academic Dashboard в стиле macOS Cupertino."""
 
-
 # Фильтры задач
 FILTER_ALL = "Все"
 FILTER_ALL_TAGS = "Все теги"
@@ -59,5 +58,36 @@ BG_TODAY = "#1E3A8A"            # Deep Blue Highlight
 BG_LIGHT = "#F8FAFC"
 BG_LIGHT_SIDEBAR = "#F1F5F9"
 BG_LIGHT_CARD = "#FFFFFF"
-BG_LIGHT_CARD_HOVER = "#F8FAFC"
+BG_LIGHT_CARD_HOVER = "#F1F5F9"
 BG_LIGHT_BORDER = "#E2E8F0"
+BG_LIGHT_TODAY = "#DBEAFE"
+
+
+def get_theme_palette(is_dark: bool) -> dict:
+    """Возвращает актуальную палитру цветов в зависимости от выбранной темы."""
+    if is_dark:
+        return {
+            "bg_app": BG_DARK,
+            "bg_sidebar": BG_SIDEBAR,
+            "bg_card": BG_CARD,
+            "bg_card_hover": BG_CARD_HOVER,
+            "bg_card_border": BG_CARD_BORDER,
+            "bg_today": BG_TODAY,
+            "text_primary": "#FFFFFF",
+            "text_secondary": "#94A3B8",
+            "text_muted": "#64748B",
+            "divider": BG_CARD_BORDER,
+        }
+    else:
+        return {
+            "bg_app": BG_LIGHT,
+            "bg_sidebar": BG_LIGHT_SIDEBAR,
+            "bg_card": BG_LIGHT_CARD,
+            "bg_card_hover": BG_LIGHT_CARD_HOVER,
+            "bg_card_border": BG_LIGHT_BORDER,
+            "bg_today": BG_LIGHT_TODAY,
+            "text_primary": "#0F172A",
+            "text_secondary": "#475569",
+            "text_muted": "#94A3B8",
+            "divider": BG_LIGHT_BORDER,
+        }
