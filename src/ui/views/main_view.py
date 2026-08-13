@@ -20,7 +20,6 @@ from src.ui.tabs.grades_tab import create_grades_tab, update_grades_view
 from src.ui.tabs.stats_tab import create_stats_tab, update_kpi_cards, update_stats_charts
 from src.ui.tabs.tasks_tab import create_tasks_tab, update_task_list
 from src.ui.views.debug_console import show_debug_console
-from src.ui.views.setup_view import render_setup_view
 from src.ui.views.workload_indicator import create_workload_indicator
 
 logger = setup_logger("views")
@@ -40,15 +39,18 @@ def run_gui(db: IDatabaseManager) -> None:
 
         from src.core.config import ENV_PATH
 
-        load_dotenv(dotenv_path=ENV_PATH, override=True)
-        token = os.getenv("TELEGRAM_BOT_TOKEN")
-        allowed_users = os.getenv("TELEGRAM_ALLOWED_USERS")
+        if not ENV_PATH.exists():
+            example_path = ENV_PATH.parent / ".env.example"
+            if example_path.exists():
+                try:
+                    import shutil
+                    shutil.copy(example_path, ENV_PATH)
+                    logger.info("Файл .env не найден. Создан шаблон .env из .env.example.")
+                except Exception as ex:
+                    logger.warning(f"Не удалось скопировать .env.example в .env: {ex}")
 
-        setup_needed = (
-            not token
-            or token in ("YOUR_TELEGRAM_BOT_TOKEN_HERE", "your_token_here", "")
-            or not allowed_users
-        )
+        load_dotenv(dotenv_path=ENV_PATH, override=True)
+
 
         def _open_debug_console(e=None):
             show_debug_console(page)
@@ -456,10 +458,8 @@ def run_gui(db: IDatabaseManager) -> None:
             page.on_disconnect = cleanup
             page.update()
 
-        # Выбираем режим при старте
-        if setup_needed:
-            render_setup_view(page, show_dashboard)
-        else:
-            show_dashboard()
+        # При старте всегда открываем главный интерфейс
+        show_dashboard()
+
 
     ft.app(target=main)

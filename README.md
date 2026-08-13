@@ -83,7 +83,8 @@ academic-dashboard/
 │   │   ├── components/      # UI components (KPI cards, Task cards, Desktop notifications)
 │   │   ├── dialogs/         # Modals (Add/Edit task, Delete confirmation)
 │   │   ├── tabs/            # Tab views (Tasks, Analytics, Grades, Calendar)
-│   │   └── views/           # Modular view screens (Main Dashboard, Setup Wizard, Log Console)
+│   │   └── views/           # Modular view screens (Main Dashboard, Log Console)
+
 │   └── bot/                 # Aiogram 3 Telegram Bot Layer
 │       ├── dependencies.py  # Bot instance & configuration loader
 │       ├── scheduler.py     # Async daily reminder scheduler

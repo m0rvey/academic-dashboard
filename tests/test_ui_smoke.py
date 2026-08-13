@@ -65,7 +65,7 @@ def test_smoke_ui(db):
         assert dialog is not None, "Add dialog not found"
 
 
-def test_smoke_ui_setup_needed(db, tmp_path):
+def test_smoke_ui_without_env(db, tmp_path):
     temp_env = tmp_path / ".env"
     main_func = get_main_func(db)
 
@@ -80,9 +80,10 @@ def test_smoke_ui_setup_needed(db, tmp_path):
         main_func(page)
 
         assert page.add.called
-        # Check that page added a Container representing the setup screen
+        # Check that page added a Column representing the main dashboard layout
         args, _ = page.add.call_args
-        assert isinstance(args[0], ft.Container)
+        assert isinstance(args[0], ft.Column)
+
 
 
 def test_smoke_tasks_tab():
