@@ -62,7 +62,7 @@ else:
     if proxy or api_server:
         api = TelegramAPIServer.from_base(api_server) if api_server else TelegramAPIServer.from_base("https://api.telegram.org")
         if proxy:
-            masked_proxy = _mask_url_credentials(proxy)
+            masked_proxy = mask_url_credentials(proxy)
             proxy_lower = proxy.lower()
             if proxy_lower.startswith("socks5://") or proxy_lower.startswith("socks4://") or proxy_lower.startswith("socks://"):
                 try:

@@ -12,7 +12,7 @@
 
 ---
 
-[ 🇷🇺 **Русский** (Основной) | 🇬🇧 [English Version](docs/README_EN.md) | 📚 [Code Documentation](CODE_DOCUMENTATION.md) | 💡 [Design Philosophy](DESIGN_PHILOSOPHY.md) ]
+[ 🇷🇺 **Русский** (Основной) | 🇬🇧 [English Version](README_EN.md) | 📚 [Code Documentation](CODE_DOCUMENTATION.md) | 💡 [Design Philosophy](DESIGN_PHILOSOPHY.md) ]
 
 ---
 
