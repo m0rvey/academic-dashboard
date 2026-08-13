@@ -49,6 +49,13 @@ else:
     from aiogram.client.session.aiohttp import AiohttpSession
     from aiogram.client.telegram import TelegramAPIServer
 
+    def _mask_url_credentials(url: str) -> str:
+        import re
+
+        if not url:
+            return ""
+        return re.sub(r"://([^:]+):([^@]+)@", r"://\1:***@", url)
+
     proxy = os.getenv("TELEGRAM_PROXY")
     api_server = os.getenv("TELEGRAM_API_SERVER")
     if api_server:
@@ -60,19 +67,20 @@ else:
     if proxy or api_server:
         api = TelegramAPIServer.from_base(api_server) if api_server else TelegramAPIServer.from_base("https://api.telegram.org")
         if proxy:
+            masked_proxy = _mask_url_credentials(proxy)
             proxy_lower = proxy.lower()
             if proxy_lower.startswith("socks5://") or proxy_lower.startswith("socks4://") or proxy_lower.startswith("socks://"):
                 try:
                     from aiohttp_socks import ProxyConnector
                     connector = ProxyConnector.from_url(proxy)
                     session = AiohttpSession(connector=connector, api=api)
-                    logger.info(f"Инициализирована SOCKS-сессия для Telegram бота через прокси: {proxy}")
+                    logger.info(f"Инициализирована SOCKS-сессия для Telegram бота через прокси: {masked_proxy}")
                 except Exception as ex:
                     logger.error(f"Не удалось инициализировать SOCKS прокси с помощью aiohttp_socks: {ex}. Пробуем обычное подключение.")
                     session = AiohttpSession(proxy=proxy, api=api)
             else:
                 session = AiohttpSession(proxy=proxy, api=api)
-                logger.info(f"Инициализирована HTTP-сессия для Telegram бота через прокси: {proxy}")
+                logger.info(f"Инициализирована HTTP-сессия для Telegram бота через прокси: {masked_proxy}")
         else:
             session = AiohttpSession(api=api)
             logger.info(f"Инициализирована сессия для Telegram бота с кастомным сервером API: {api_server}")

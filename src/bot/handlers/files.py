@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import uuid
 from pathlib import Path
 
 from aiogram import F, Router
@@ -26,7 +27,8 @@ async def handle_document_restore(message: Message, db: DatabaseManager, app_sta
         await message.answer("❌ Не удалось получить имя файла.")
         return
 
-    ext = Path(file_name).suffix.lower()
+    safe_base_name = Path(file_name).name
+    ext = Path(safe_base_name).suffix.lower()
     if ext not in (".db", ".json"):
         await message.answer(
             "❌ Поддерживаются только файлы резервных копии `.db` (SQLite) или файлы экспорта задач `.json`."
@@ -35,7 +37,7 @@ async def handle_document_restore(message: Message, db: DatabaseManager, app_sta
 
     temp_dir = Path(__file__).resolve().parent.parent.parent.parent / "data" / "temp"
     temp_dir.mkdir(parents=True, exist_ok=True)
-    temp_file_path = temp_dir / file_name
+    temp_file_path = temp_dir / f"restore_{uuid.uuid4().hex}_{safe_base_name}"
 
     try:
         file_info = await bot.get_file(document.file_id)

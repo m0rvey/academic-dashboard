@@ -4,7 +4,7 @@ from datetime import date, datetime
 from aiogram.exceptions import TelegramAPIError
 from aiogram.types import FSInputFile
 
-from src.bot.dependencies import bot, db, logger
+from src.bot.dependencies import ADMIN_USERS, bot, db, logger
 from src.core.config import DB_PATH
 
 
@@ -66,13 +66,14 @@ async def send_daily_reminders():
 
 
 
-            # Автоматический еженедельный бэкап по воскресеньям в 10:00
+            # Автоматический еженедельный бэкап по воскресеньям в 10:00 (только для администраторов)
             backup_key = f"{today_key}_backup"
             if now.weekday() == 6 and now.hour >= 10 and backup_key not in sent_actions:
                 sent_actions.add(backup_key)
                 users = db.get_all_users()
-                if users and DB_PATH.exists():
-                    for chat_id in users:
+                admin_recipients = [uid for uid in users if uid in ADMIN_USERS]
+                if admin_recipients and DB_PATH.exists():
+                    for chat_id in admin_recipients:
                         try:
                             document = FSInputFile(DB_PATH)
                             await bot.send_document(

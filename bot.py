@@ -14,11 +14,12 @@ from src.bot.scheduler import send_daily_reminders
 
 dp = Dispatcher()
 
-# Регистрация Middlewares
-dp.message.outer_middleware(RateLimitMiddleware(limit=1.0))
+# Регистрация Middlewares (Auth first to reject unauthenticated requests immediately)
 dp.message.outer_middleware(AuthMiddleware())
+dp.message.outer_middleware(RateLimitMiddleware(limit=1.0))
 dp.message.outer_middleware(DependencyMiddleware(db, state))
 dp.callback_query.outer_middleware(AuthMiddleware())
+dp.callback_query.outer_middleware(RateLimitMiddleware(limit=1.0))
 dp.callback_query.outer_middleware(DependencyMiddleware(db, state))
 
 # Регистрация Routers
