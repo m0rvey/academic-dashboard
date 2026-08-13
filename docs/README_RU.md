@@ -4,8 +4,8 @@
 [![Flet](https://img.shields.io/badge/UI-Flet_0.25.2-purple.svg)](https://flet.dev/)
 [![Aiogram](https://img.shields.io/badge/Telegram_Bot-Aiogram_3-blue.svg)](https://docs.aiogram.dev/)
 [![SQLite](https://img.shields.io/badge/Database-SQLite3_WAL-green.svg)](https://sqlite.org/)
-[![Tests](https://img.shields.io/badge/Tests-96_passed_100%25-brightgreen.svg)](tests/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/Tests-96_passed_100%25-brightgreen.svg)](../tests/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](../LICENSE)
 
 > **Персональный планировщик учебной нагрузки и аналитический дашборд успеваемости для учащихся.**  
 > Включает **три полноценных интерфейса** (Кроссплатформенный GUI / Консольный CLI / Telegram-бот) с единым модульным ядром бизнес-логики.
@@ -33,7 +33,6 @@
   - [2. Консольный режим (CLI)](#2-консольный-режим-cli)
   - [3. Telegram-бот](#3-telegram-бот)
 - [Тестирование и контроль качества](#-тестирование-и-контроль-качества)
-- [Документация и Архитектура](#-документация-и-архитектура)
 - [Лицензия](#-лицензия)
 
 ---
@@ -50,7 +49,6 @@
 - 🔄 **Реактивный APFS Observer** — Мгновенная синхронизация GUI и бота через файловый триггер `.db_change` с записью точного временного штампа `time.time()`.
 - 💻 **Консольный режим CLI** — Полноценный терминальный интерфейс для серверов или слабых ПК.
 
-
 ---
 
 ## 🏗️ Архитектура системы
@@ -61,8 +59,11 @@
 academic-dashboard/
 ├── main.py                  # Главная точка входа (запуск GUI или CLI)
 ├── bot.py                   # Запуск процесса и потока Telegram-бота
-├── pyproject.toml           # Метаданные и конфигурация линтера (Ruff)
+├── pyproject.toml           # Метаданные, pytest и конфигурация линтера (Ruff)
 ├── requirements.txt         # Зависимости проекта
+├── docs/                    # Полная документация проекта
+│   ├── README.md            # Документация на английском языке
+│   └── README_RU.md         # Документация на русском языке
 ├── data/                    # База данных SQLite и лог-файлы
 ├── src/
 │   ├── core/                # Бизнес-логика, математические модели и слой БД
@@ -87,14 +88,13 @@ academic-dashboard/
 │   │   ├── dialogs/         # Диалоговые окна (добавление/редактирование, удаление)
 │   │   ├── tabs/            # Вкладки (Задачи, Статистика, Успеваемость, Календарь)
 │   │   └── views/           # Экраны (Дашборд, Консоль логов)
-
 │   └── bot/                 # Модуль Telegram-бота на Aiogram 3
 │       ├── dependencies.py  # Инициализация бота и конфигурации
 │       ├── scheduler.py     # Фоновая служба ежедневных напоминаний
 │       ├── state.py         # Кэш состояния бота в памяти
 │       ├── middlewares/     # Middleware рейт-лимита, авторизации и внедрения зависимостей
 │       └── handlers/        # Обработчики команд (/start, /add, /list, /stats, /grades, /backup)
-└── tests/                   # Набор тестов Pytest (92 теста для БД, бота, логики и UI)
+└── tests/                   # Набор тестов Pytest (покрывает БД, бота, логику и UI)
 ```
 
 ---
@@ -224,17 +224,18 @@ TELEGRAM_ADMIN_USERS=123456789
 - `/grades` — Сводка успеваемости и средний балл GPA.
 - `/load` — Нагрузка на сегодня в сравнении с дневным лимитом.
 - `/backup` — Получение JSON бэкапа базы данных (только для админа).
+- `/settings` — Настройка времени напоминаний.
 - `/cancel` — Отмена текущей операции.
 
 ---
 
 ## 🧪 Тестирование и контроль качества
 
-Проект покрыт **92 автотестами** (юнит, интеграционные, UI-smoke тесты):
+Проект покрыт автоматическими тестами (юнит, интеграционные, UI-smoke тесты):
 
 Запуск всех тестов:
 ```bash
-PYTHONPATH=. .venv/bin/pytest tests/ -v
+.venv/bin/pytest tests/ -v
 ```
 
 Проверка кода линтером Ruff:
@@ -246,6 +247,6 @@ PYTHONPATH=. .venv/bin/pytest tests/ -v
 
 ## 📜 Лицензия
 
-Распространяется под лицензией **MIT** — подробности см. в файле [LICENSE](LICENSE).
+Распространяется под лицензией **MIT** — подробности см. в файле [LICENSE](../LICENSE).
 
 Copyright (c) 2026 **m0rvey**

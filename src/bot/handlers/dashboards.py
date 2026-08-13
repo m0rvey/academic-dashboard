@@ -99,8 +99,14 @@ def generate_grades_text(app_state: BotState) -> str:
     if not subject_gpa:
         text += "Нет данных по предметам."
     else:
-        for subj, subj_gpa in subject_gpa.items():
-            text += f"• {escape_md(subj)}: *{subj_gpa}*\n"
+        for subj, val in subject_gpa.items():
+            if isinstance(val, dict):
+                score = round(val.get("gpa", 0.0), 2)
+                cnt = val.get("count", 0)
+                text += f"• {escape_md(subj)}: *{score:.2f}* ({cnt} оц.)\n"
+            else:
+                score = round(float(val), 2)
+                text += f"• {escape_md(subj)}: *{score:.2f}*\n"
     return text
 
 

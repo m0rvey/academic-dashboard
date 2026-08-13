@@ -156,3 +156,19 @@ class IDatabaseManager(ABC):
     def rotate_local_backups(self) -> None:
         """Создает резервную копию базы данных и оставляет только MAX_BACKUPS последних бэкапов."""
         pass
+
+    @abstractmethod
+    def get_user_reminder_hour(self, chat_id: int) -> int:
+        """Получает настроенный час напоминаний для пользователя Telegram."""
+        pass
+
+    @abstractmethod
+    def set_user_reminder_hour(self, chat_id: int, hour: int) -> bool:
+        """Устанавливает час напоминаний для пользователя Telegram."""
+        pass
+
+    @abstractmethod
+    def get_users_with_reminder_hour(self, hour: int) -> List[int]:
+        """Получает список пользователей с указанным часом напоминаний."""
+        pass
+

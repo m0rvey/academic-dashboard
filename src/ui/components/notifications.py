@@ -26,8 +26,6 @@ def notify_mac(title: str, subtitle: str, message: str):
 def send_desktop_notifications(
     db,
     notified_task_ids,
-    active_notification_tasks,
-    _on_notification_done,
     last_notification_date_ref,
 ):
     """Отправляет уведомления macOS для задач с дедлайном сегодня или завтра."""

@@ -159,15 +159,7 @@ def run_gui(db: IDatabaseManager) -> None:
 
             # State tracking variables
             notified_task_ids = set()
-            active_notification_tasks = set()
             last_notification_date_ref = [date.today()]
-
-            def _on_notification_done(task_ref):
-                active_notification_tasks.discard(task_ref)
-                try:
-                    task_ref.result()
-                except Exception as ex:
-                    logger.error(f"Error in notify_mac background task: {ex}", exc_info=True)
 
             config_write_lock = threading.Lock()
 
@@ -230,17 +222,15 @@ def run_gui(db: IDatabaseManager) -> None:
                 send_desktop_notifications(
                     db,
                     notified_task_ids,
-                    active_notification_tasks,
-                    _on_notification_done,
                     last_notification_date_ref,
                 )
                 refresh_active_tab()
 
             # Initialize Modal Dialogs
-            add_dialog, open_add_dialog, open_edit_dialog = create_add_edit_dialog(
+            _, open_add_dialog, open_edit_dialog = create_add_edit_dialog(
                 page, db, show_snack, lambda: trigger_data_update()
             )
-            delete_confirm_dialog, open_delete_confirm = create_delete_dialog(
+            _, open_delete_confirm = create_delete_dialog(
                 page, db, show_snack, lambda: trigger_data_update()
             )
 
@@ -455,8 +445,6 @@ def run_gui(db: IDatabaseManager) -> None:
                         send_desktop_notifications(
                             db,
                             notified_task_ids,
-                            active_notification_tasks,
-                            _on_notification_done,
                             last_notification_date_ref,
                         )
                         refresh_active_tab()

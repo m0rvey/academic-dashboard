@@ -4,8 +4,8 @@
 [![Flet](https://img.shields.io/badge/UI-Flet_0.25.2-purple.svg)](https://flet.dev/)
 [![Aiogram](https://img.shields.io/badge/Telegram_Bot-Aiogram_3-blue.svg)](https://docs.aiogram.dev/)
 [![SQLite](https://img.shields.io/badge/Database-SQLite3_WAL-green.svg)](https://sqlite.org/)
-[![Tests](https://img.shields.io/badge/Tests-96_passed_100%25-brightgreen.svg)](tests/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/Tests-96_passed_100%25-brightgreen.svg)](../tests/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](../LICENSE)
 
 > **Personal academic workload planner and grade analytics system for students.**  
 > Features **three seamless interfaces** (Cross-Platform GUI / Interactive CLI / Telegram Bot) driven by a unified, highly modular core.
@@ -33,7 +33,6 @@
   - [Interactive Command Line (CLI)](#2-interactive-command-line-cli)
   - [Telegram Bot](#3-telegram-bot)
 - [Testing & Quality Assurance](#-testing--quality-assurance)
-- [Documentation & Architecture](#-documentation--architecture)
 - [License](#-license)
 
 ---
@@ -50,7 +49,6 @@
 - 🔄 **Real-Time APFS Observer** — Reactive file-system watcher (`watchdog`) with timestamp triggers (`.db_change`), syncing GUI instantly when bot tasks change.
 - 💻 **Standalone CLI Mode** — Fully functional terminal user interface for server environments or low-resource systems.
 
-
 ---
 
 ## 🏗️ System Architecture
@@ -61,8 +59,11 @@ The codebase enforces a clean separation of concerns, decoupling storage, logic,
 academic-dashboard/
 ├── main.py                  # Primary application entry point (GUI / CLI launcher)
 ├── bot.py                   # Telegram bot process launcher & thread runner
-├── pyproject.toml           # Project metadata & linter configuration (Ruff)
+├── pyproject.toml           # Project metadata, pytest & Ruff linter configuration
 ├── requirements.txt         # Production dependencies
+├── docs/                    # Complete project documentation & guides
+│   ├── README.md            # English documentation
+│   └── README_RU.md         # Russian documentation
 ├── data/                    # SQLite database and app runtime log directory
 ├── src/
 │   ├── core/                # Business logic, algorithms, models, and DB layer
@@ -87,14 +88,13 @@ academic-dashboard/
 │   │   ├── dialogs/         # Modals (Add/Edit task, Delete confirmation)
 │   │   ├── tabs/            # Tab views (Tasks, Analytics, Grades, Calendar)
 │   │   └── views/           # Modular view screens (Main Dashboard, Log Console)
-
 │   └── bot/                 # Aiogram 3 Telegram Bot Layer
 │       ├── dependencies.py  # Bot instance & configuration loader
 │       ├── scheduler.py     # Async daily reminder scheduler
 │       ├── state.py         # In-memory bot cache
 │       ├── middlewares/     # RateLimit throttling, Auth, Dependency injection
 │       └── handlers/        # Command routers (/start, /add, /list, /stats, /grades, /backup)
-└── tests/                   # Pytest test suite (92 tests covering DB, Bot, Logic, UI)
+└── tests/                   # Pytest test suite (covering DB, Bot, Logic, UI)
 ```
 
 ---
@@ -174,7 +174,7 @@ Create a `.env` file in the root directory:
 TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
 TELEGRAM_ALLOWED_USERS=123456789
 TELEGRAM_ADMIN_USERS=123456789
-# Optional Proxy settings for Russia/constrained environments:
+# Optional Proxy settings for restricted environments:
 # TELEGRAM_PROXY=socks5://username:password@ip:port
 # TELEGRAM_API_SERVER=https://tg-proxy-worker.username.workers.dev
 ```
@@ -224,17 +224,18 @@ Available Bot Commands:
 - `/grades` — View GPA summary & performance overview.
 - `/load` — Inspect current daily workload vs recommended limit.
 - `/backup` — Generate & receive database JSON backup (Admin only).
+- `/settings` — Configure reminder schedule time.
 - `/cancel` — Cancel current bot operation.
 
 ---
 
 ## 🧪 Testing & Quality Assurance
 
-The project includes a comprehensive suite of **92 automated unit and integration tests** covering all modules:
+The project includes a comprehensive suite of automated unit and integration tests covering all modules:
 
 Run the full test suite:
 ```bash
-PYTHONPATH=. .venv/bin/pytest tests/ -v
+.venv/bin/pytest tests/ -v
 ```
 
 Run static code analysis and linting:
@@ -246,6 +247,6 @@ Run static code analysis and linting:
 
 ## 📜 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** — see the [LICENSE](../LICENSE) file for details.
 
 Copyright (c) 2026 **m0rvey**

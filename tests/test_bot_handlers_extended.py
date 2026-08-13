@@ -198,6 +198,38 @@ async def test_grades_handler_no_data():
 
 
 @pytest.mark.asyncio
+async def test_grades_handler_with_data():
+    from src.bot.handlers.dashboards import generate_grades_text, grades_command_handler
+
+    msg = _make_message("/grades")
+    mock_db = MagicMock()
+    mock_state = MagicMock()
+    mock_state.get_grades_stats.return_value = {
+        "gpa": 4.67,
+        "total_count": 3,
+        "count_5": 2,
+        "count_4": 1,
+        "count_3": 0,
+        "count_2": 0,
+    }
+    mock_state.get_subject_grades_gpa.return_value = {
+        "Физика": {"gpa": 4.5, "count": 2},
+        "Математика": {"gpa": 5.0, "count": 1},
+    }
+
+    text = generate_grades_text(mock_state)
+    assert "• Физика: *4.50* (2 оц.)" in text
+    assert "• Математика: *5.00* (1 оц.)" in text
+    assert "Общий GPA: *4.67*" in text
+
+    await grades_command_handler(msg, db=mock_db, app_state=mock_state)
+    msg.answer.assert_called_once()
+    response = msg.answer.call_args[0][0]
+    assert "Физика" in response
+
+
+
+@pytest.mark.asyncio
 async def test_process_doing_callback():
     from aiogram.types import CallbackQuery
 
