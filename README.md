@@ -1,181 +1,247 @@
-# Academic Dashboard
+# 🎓 Academic Dashboard
 
-Персональный планировщик учебной нагрузки для школьника. Три интерфейса (GUI / CLI / Telegram Bot) с единым ядром бизнес-логики.
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Flet](https://img.shields.io/badge/UI-Flet_0.25.2-purple.svg)](https://flet.dev/)
+[![Aiogram](https://img.shields.io/badge/Telegram_Bot-Aiogram_3-blue.svg)](https://docs.aiogram.dev/)
+[![SQLite](https://img.shields.io/badge/Database-SQLite3_WAL-green.svg)](https://sqlite.org/)
+[![Tests](https://img.shields.io/badge/Tests-92_passed_100%25-brightgreen.svg)](tests/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Возможности
+> **Personal academic workload planner and grade analytics system for students.**  
+> Features **three seamless interfaces** (Cross-Platform GUI / Interactive CLI / Telegram Bot) driven by a unified, highly modular core.
 
-- **CRUD задач** — предмет, описание, дедлайн, сложность 1-10, теги, статус
-- **Smart Priority** — `P = effort_score / (days_left + 1) × exam_multiplier` (1.5 для ОГЭ/ЕГЭ/Экзамен)
-- **Контроль нагрузки** — дневной лимит 10 ед. с предупреждениями
-- **GPA калькулятор** — аналитическая формула O(1) без итераций
-- **NLP-парсер** — ввод задач естественным языком на русском (`"домашка по физике лаба 3 на завтра сложность 4"`)
-- **4 вкладки GUI** — Задачи, Статистика, Успеваемость, Календарь
-- **Telegram-бот** — `/list`, `/load`, `/done`, `/add`, `/stats`, `/grades`, `/backup`, ежедневные напоминания
-- **CLI-режим** — `python main.py --cli`
-- Тёмная/светлая тема, импорт/экспорт JSON, ротация бэкапов, macOS-уведомления
+---
 
-## Стек
+[ **English** | [Русский](README_RU.md) ]
 
-Python ≥3.10 / Flet 0.25.2 / Aiogram 3 / SQLite3 (WAL) / Pydantic v2
+---
 
-## Установка и запуск
+## 📑 Table of Contents
 
+- [Key Features](#-key-features)
+- [System Architecture](#-system-architecture)
+- [Mathematical Formulas & Logic](#-mathematical-formulas--logic)
+  - [Smart Task Priority](#smart-task-priority)
+  - [GPA & Target Grade Analytics](#gpa--target-grade-analytics)
+- [Natural Language Processing (NLP)](#-natural-language-processing-nlp)
+- [Getting Started](#-getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Environment Variables (`.env`)](#environment-variables-env)
+- [Usage Modes](#-usage-modes)
+  - [Graphical User Interface (GUI)](#1-graphical-user-interface-gui)
+  - [Interactive Command Line (CLI)](#2-interactive-command-line-cli)
+  - [Telegram Bot](#3-telegram-bot)
+- [Testing & Quality Assurance](#-testing--quality-assurance)
+- [License](#-license)
 
-```bash
-git clone https://github.com/m0rvey/academic-dashboard.git
-cd academic-dashboard
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt pytest pytest-asyncio
+---
+
+## ✨ Key Features
+
+- 📝 **Task Management (CRUD)** — Subject, description, deadline, effort score (1–10 scale), tags, and status tracking (TODO / IN PROGRESS / DONE).
+- ⚡ **Smart Priority Scoring** — Dynamic priority calculation prioritizing urgent deadlines, heavy workloads, and crucial exam subjects (OGE / EGE / Final Exams).
+- 📊 **Workload Balance Control** — Daily recommended workload limit (10 units max) with visual progress indicators and overflow warnings.
+- 🎯 **GPA & Grade Target Analytics** — Constant-time \(O(1)\) analytical calculator predicting exact required grades to reach target GPAs.
+- 🗣️ **Russian Natural Language Parser** — Add tasks effortlessly in natural spoken Russian (e.g., `"домашка по физике лаба 3 на завтра сложность 4"`).
+- 🖥️ **4-Tab Desktop Interface** — Built with Flet (Flutter engine for Python) featuring Dark/Light themes, JSON import/export, and live DB file-system observers.
+- 🤖 **Feature-Rich Telegram Bot** — Aiogram 3 bot with FSM task creation, rate-limiting throttle middleware, role authorization (fail-closed), daily automated reminders, and database backups.
+- 💻 **Standalone CLI Mode** — Fully functional terminal user interface for server environments or low-resource systems.
+
+---
+
+## 🏗️ System Architecture
+
+The codebase enforces a clean separation of concerns, decoupling storage, logic, and interface layers:
+
+```
+academic-dashboard/
+├── main.py                  # Primary application entry point (GUI / CLI launcher)
+├── bot.py                   # Telegram bot process launcher & thread runner
+├── pyproject.toml           # Project metadata & linter configuration (Ruff)
+├── requirements.txt         # Production dependencies
+├── data/                    # SQLite database and app runtime log directory
+├── src/
+│   ├── core/                # Business logic, algorithms, models, and DB layer
+│   │   ├── config.py        # Central configuration constants
+│   │   ├── interfaces.py    # Abstract base interfaces (IDatabaseManager)
+│   │   ├── logic.py         # Priority calculations & GPA algorithms
+│   │   ├── models.py        # Pydantic Task model validation & Enums
+│   │   ├── nlp_parser.py    # Natural language parsing engine
+│   │   ├── migrations.py    # SQLite schema migrations
+│   │   └── database/        # Modular Repository Pattern Layer
+│   │       ├── connection.py        # SQLite connection manager (WAL mode, Foreign Keys)
+│   │       ├── task_repository.py   # Task CRUD, filtering, tags & SQL priority sorting
+│   │       ├── grade_repository.py  # Grade statistics & subject GPA aggregations
+│   │       ├── stats_repository.py  # KPI metrics & 7-day workload distributions
+│   │       ├── backup_manager.py    # JSON export/import & local backup rotation
+│   │       ├── user_repository.py   # Telegram bot user authorization storage
+│   │       └── manager.py           # Unified DatabaseManager facade
+│   ├── ui/                  # Flet Desktop GUI Layer
+│   │   ├── constants.py     # Theme color tokens & styling constants
+│   │   ├── state.py         # Reactive AppState cache
+│   │   ├── components/      # UI components (KPI cards, Task cards, Desktop notifications)
+│   │   ├── dialogs/         # Modals (Add/Edit task, Delete confirmation)
+│   │   ├── tabs/            # Tab views (Tasks, Analytics, Grades, Calendar)
+│   │   └── views/           # Modular view screens (Main Dashboard, Setup Wizard, Log Console)
+│   └── bot/                 # Aiogram 3 Telegram Bot Layer
+│       ├── dependencies.py  # Bot instance & configuration loader
+│       ├── scheduler.py     # Async daily reminder scheduler
+│       ├── state.py         # In-memory bot cache
+│       ├── middlewares/     # RateLimit throttling, Auth, Dependency injection
+│       └── handlers/        # Command routers (/start, /add, /list, /stats, /grades, /backup)
+└── tests/                   # Pytest test suite (92 tests covering DB, Bot, Logic, UI)
 ```
 
-## Запуск
+---
 
-```bash
-# GUI
-.venv/bin/python main.py
+## 🧮 Mathematical Formulas & Logic
 
-# CLI
-.venv/bin/python main.py --cli
+### Smart Task Priority
 
-# Telegram Bot (требуется .env с TELEGRAM_BOT_TOKEN)
-.venv/bin/python bot.py
+Each task's priority \(P\) is dynamically evaluated using the formula:
 
-# Тесты
-TELEGRAM_BOT_TOKEN="123456789:ABCdefGHIjklMNOpqrsTUVwxyz" PYTHONPATH=. .venv/bin/pytest tests/ -v
+$$P = \frac{\text{effort\_score}}{\text{days\_left} + 1} \times \text{exam\_multiplier}$$
+
+Where:
+- **`effort_score`**: Task difficulty rating on a scale of $1$ (Very Easy) to $10$ (Extreme).
+- **`days_left`**: Days remaining until the deadline ($\max(0, \text{deadline} - \text{today})$).
+- **`exam_multiplier`**: Set to $1.5$ if the task contains exam tags (`ОГЭ`, `ЕГЭ`, `Экзамен`), otherwise $1.0$.
+
+### GPA & Target Grade Analytics
+
+To achieve a desired average grade $G_{\text{target}}$ given $N$ existing grades with sum $S$, the system computes the exact minimum number of additional straight 5s ($K_5$) needed in constant time $O(1)$:
+
+$$K_5 = \left\lceil \frac{G_{\text{target}} \cdot N - S}{5 - G_{\text{target}}} \right\rceil$$
+
+---
+
+## 🗣️ Natural Language Processing (NLP)
+
+The built-in Russian NLP parser converts free-form sentences into validated structured `Task` objects:
+
+```text
+Input:  "домашка по физике лаба 3 на завтра сложность 4 ОГЭ"
+Parsed: Subject = "Физика"
+        Description = "Лаба 3"
+        Deadline = tomorrow's date (YYYY-MM-DD)
+        Effort Score = 4
+        Tags = ["ОГЭ"]
 ```
 
-### Переменные окружения (.env)
+Key capabilities:
+- **Relative Date Recognition**: `"сегодня"`, `"завтра"`, `"послезавтра"`, `"через 3 дня"`.
+- **Subject Extraction**: Recognizes school subjects and common abbreviations (`маша`/`математика`, `физра`, `обж`, `лит-ра`).
+- **Difficulty Inference**: Extracts numbers following keywords like `"сложность"`, `"сложность:"`, `"уровень"`.
 
-Создайте файл `.env` в корневой директории:
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Python 3.10+** installed on your system.
+- **Git** for repository cloning.
+
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/m0rvey/academic-dashboard.git
+   cd academic-dashboard
+   ```
+
+2. **Create and activate a virtual environment:**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt pytest pytest-asyncio ruff
+   ```
+
+### Environment Variables (`.env`)
+
+Create a `.env` file in the root directory:
+
 ```env
 TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
 TELEGRAM_ALLOWED_USERS=123456789
 TELEGRAM_ADMIN_USERS=123456789
+# Optional Proxy settings for Russia/constrained environments:
+# TELEGRAM_PROXY=socks5://username:password@ip:port
+# TELEGRAM_API_SERVER=https://tg-proxy-worker.username.workers.dev
 ```
 
-## Архитектура
+---
 
-```
-┌─────────────────────────────────────────────┐
-│           Presentation Layer                │
-│  CLI (main.py) │ Flet GUI │ Aiogram 3 Bot  │
-├─────────────────────────────────────────────┤
-│             Core Layer                      │
-│  database.py │ logic.py │ models.py         │
-│  nlp_parser.py │ grade_calculator.py        │
-├─────────────────────────────────────────────┤
-│         SQLite3 (WAL)  planner.db           │
-└─────────────────────────────────────────────┘
-```
+## 💻 Usage Modes
 
-## Структура проекта
+### 1. Graphical User Interface (GUI)
 
-```
-academic-dashboard/
-├── main.py                          # Точка входа GUI/CLI
-├── bot.py                           # Точка входа Telegram-бота
-├── src/
-│   ├── bot/                         # Telegram Bot
-│   │   ├── handlers/                # Команды (commands, tasks, dashboards, files)
-│   │   ├── middlewares/             # Auth, RateLimit, Dependency Injection
-│   │   ├── state.py                 # BotState — кэш для бота
-│   │   ├── dependencies.py          # Синглтоны (bot, db, state)
-│   │   └── scheduler.py            # Ежедневные напоминания
-│   ├── core/                        # Ядро бизнес-логики
-│   │   ├── database.py             # DatabaseManager (CRUD, N+1 prevention)
-│   │   ├── logic.py                # Smart Priority, Daily Load
-│   │   ├── models.py               # Pydantic Task + TaskStatus
-│   │   ├── nlp_parser.py           # Regex NLP (русский, ООП)
-│   │   ├── grade_calculator.py     # GPA target calculator O(1)
-│   │   ├── migrations.py           # Schema v0 → v4
-│   │   ├── config.py               # Константы
-│   │   └── logger.py               # Logging
-│   └── ui/                          # Flet GUI
-│       ├── state.py                 # AppState — in-memory кэш
-│       ├── views.py                 # Оркестратор GUI
-│       ├── components/              # KPI-карточки, уведомления
-│       ├── dialogs/                 # Диалоги добавления/удаления
-│       └── tabs/                    # Задачи, Статистика, Успеваемость, Календарь
-└── tests/                           # 86 тестов (pytest)
-```
-
-## Тесты
+Launch the interactive desktop interface:
 
 ```bash
-PYTHONPATH=. python -m pytest tests/ -v
+.venv/bin/python main.py
 ```
 
-| Модуль | Тестов | Покрытие |
-|--------|--------|----------|
-| `test_database.py` | 16 | CRUD, теги, JSON, ротация, агрегация |
-| `test_logic.py` | 21 | Приоритет, нагрузка, NLP, GPA, валидация |
-| `test_bot_auth.py` | 5 | AuthMiddleware |
-| `test_bot_handlers.py` | 2 | Backup handler |
-| `test_bot_handlers_extended.py` | 12 | /start, /load, /list, /done, /add, /stats, /grades |
-| `test_bot_state.py` | 7 | Кэширование BotState |
-| `test_throttling.py` | 7 | Rate limiting |
-| `test_escape_md.py` | 16 | Markdown escaping |
+Features:
+- **Tasks Tab**: Filter by status/tag, search, sort by priority/deadline/effort, inline edit & completion.
+- **Analytics Tab**: Visual charts for subject workload, 7-day completion velocity, and KPI summaries.
+- **Grades Tab**: GPA distribution, subject grade tracker, target grade forecasting.
+- **Calendar Tab**: Month grid view showing scheduled task deadlines.
+- **Debug Console**: Click the Telegram Bot status badge to view live system logs and diagnostics.
 
-## Качество кода
+### 2. Interactive Command Line (CLI)
 
-- **Linting & Formatting:** ruff (line-length=120)
-- **Типизация:** полная (Pydantic v2, type hints)
-- **DI:** DependencyMiddleware для Aiogram (тестируемые хендлеры)
+Launch terminal mode:
 
-## Безопасность
+```bash
+.venv/bin/python main.py --cli
+```
 
-| Риск | Статус |
-|------|--------|
-| SQL Injection | ✅ Параметризованные запросы |
-| Auth | ✅ Fail-Closed middleware, whitelist |
-| Rate Limiting | ✅ RateLimitMiddleware (1s, memory cleanup) |
-| Markdown XSS | ✅ escape_md для всех спецсимволов v1 |
+Provides an interactive console menu to add tasks, list items sorted by priority, inspect daily workload, and manage task statuses.
 
-## Обход блокировок Telegram в РФ
+### 3. Telegram Bot
 
-Если у вас возникают проблемы с подключением бота из-за ограничений Telegram в РФ, вы можете настроить прокси или кастомный API-сервер в настройках приложения (или в файле `~/Library/Application Support/AcademicDashboard/.env`).
+Launch the Telegram bot independently:
 
-### 1. Кастомный API-сервер (Реверс-прокси) — Рекомендуемый способ
-Вместо прямого обращения к `api.telegram.org` приложение будет отправлять запросы через промежуточный сервер-прокси.
+```bash
+.venv/bin/python bot.py
+```
 
-- **Публичные прокси** (использовать на свой страх и риск, могут быть нестабильны):
-  Введите в поле **Кастомный API сервер**:
-  `https://api.telegram-proxy.org/bot`
-  или
-  `https://tgproxy.uz/bot`
+Available Bot Commands:
+- `/start` — Register user & view welcome instructions.
+- `/add` — Start interactive multi-step FSM task creation.
+- `/list` — View active tasks sorted by priority with inline quick-completion buttons.
+- `/stats` — Show KPI statistics dashboard.
+- `/grades` — View GPA summary & performance overview.
+- `/load` — Inspect current daily workload vs recommended limit.
+- `/backup` — Generate & receive database JSON backup (Admin only).
+- `/cancel` — Cancel current bot operation.
 
-- **Собственный приватный прокси через Cloudflare Workers** (Рекомендуется: бесплатно, приватно, быстро):
-  1. Зарегистрируйтесь на [Cloudflare](https://dash.cloudflare.com/) (это бесплатно).
-  2. Перейдите в **Workers & Pages** -> **Create Application** -> **Create Worker**.
-  3. Назовите воркер (например, `tg-proxy-worker`) и нажмите **Deploy**.
-  4. Нажмите **Edit Code** и замените код в файле `worker.js` на следующий:
-     ```javascript
-     addEventListener('fetch', event => {
-       event.respondWith(handleRequest(event.request))
-     })
+---
 
-     async function handleRequest(request) {
-       const url = new URL(request.url)
-       url.hostname = 'api.telegram.org'
-       // Если в начале пути дублируется /bot/bot, обрезаем один из них
-       if (url.pathname.startsWith('/bot/bot')) {
-         url.pathname = url.pathname.replace('/bot/bot', '/bot')
-       }
-       return fetch(url, request)
-     }
-     ```
-  5. Нажмите **Deploy** в правом верхнем углу.
-  6. Скопируйте адрес вашего воркера (например, `https://tg-proxy-worker.your-subdomain.workers.dev`).
-  7. Вставьте этот URL в поле **Кастомный API сервер** в приложении (можно указывать как с `/bot` на конце, так и просто домен `https://tg-proxy-worker.your-subdomain.workers.dev` — бот поймет оба формата).
+## 🧪 Testing & Quality Assurance
 
-### 2. Использование HTTP / SOCKS5 прокси
-В поле **Прокси-сервер** вы можете указать ваш собственный прокси-сервер:
-- **HTTP/HTTPS прокси**: `http://ip:port` или `http://user:password@ip:port`
-- **SOCKS5 прокси**: `socks5://ip:port` или `socks5://user:password@ip:port`
+The project includes a comprehensive suite of **92 automated unit and integration tests** covering all modules:
 
-Благодаря библиотеке `aiohttp-socks`, приложение нативно поддерживает SOCKS4/5 прокси для Telegram бота.
+Run the full test suite:
+```bash
+PYTHONPATH=. .venv/bin/pytest tests/ -v
+```
 
-## Лицензия
+Run static code analysis and linting:
+```bash
+.venv/bin/ruff check .
+```
 
-MIT
+---
 
+## 📜 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+Copyright (c) 2026 **m0rvey**
