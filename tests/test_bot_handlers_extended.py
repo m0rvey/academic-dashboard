@@ -195,3 +195,56 @@ async def test_grades_handler_no_data():
     msg.answer.assert_called_once()
     response = msg.answer.call_args[0][0]
     assert "Нет данных" in response
+
+
+@pytest.mark.asyncio
+async def test_process_doing_callback():
+    from aiogram.types import CallbackQuery
+
+    from src.bot.handlers.tasks import process_doing_callback
+
+    cb = MagicMock(spec=CallbackQuery)
+    cb.data = "task_doing_1"
+    cb.answer = AsyncMock()
+    cb.message = MagicMock()
+    cb.message.edit_text = AsyncMock()
+
+    mock_db = MagicMock()
+    task = Task(id=1, subject="Физика", description="Лаба", deadline=date.today().isoformat(), effort_score=4)
+    mock_db.get_task_by_id.return_value = task
+    mock_db.update_task_status.return_value = True
+
+    mock_state = MagicMock()
+    mock_state.get_sorted_active_tasks.return_value = [task]
+
+    await process_doing_callback(cb, db=mock_db, app_state=mock_state)
+    mock_db.update_task_status.assert_called_once_with(1, TaskStatus.DOING)
+    cb.answer.assert_called_once()
+    assert "в процессе" in cb.answer.call_args[0][0]
+
+
+@pytest.mark.asyncio
+async def test_process_delete_callback():
+    from aiogram.types import CallbackQuery
+
+    from src.bot.handlers.tasks import process_delete_callback
+
+    cb = MagicMock(spec=CallbackQuery)
+    cb.data = "task_del_1"
+    cb.answer = AsyncMock()
+    cb.message = MagicMock()
+    cb.message.edit_text = AsyncMock()
+
+    mock_db = MagicMock()
+    task = Task(id=1, subject="Физика", description="Лаба", deadline=date.today().isoformat(), effort_score=4)
+    mock_db.get_task_by_id.return_value = task
+    mock_db.delete_task.return_value = True
+
+    mock_state = MagicMock()
+    mock_state.get_sorted_active_tasks.return_value = []
+
+    await process_delete_callback(cb, db=mock_db, app_state=mock_state)
+    mock_db.delete_task.assert_called_once_with(1)
+    cb.answer.assert_called_once()
+    assert "удалена" in cb.answer.call_args[0][0]
+

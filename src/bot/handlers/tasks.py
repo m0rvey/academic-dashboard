@@ -32,15 +32,16 @@ class ConfirmNLPState(StatesGroup):
     waiting_for_confirmation = State()
 
 
-@router.message(Command("list"))
-async def list_tasks(message: Message, db: DatabaseManager, app_state: BotState):
-    db.register_user(message.chat.id)
-
+def build_task_list_payload(app_state: BotState):
+    """Генерирует текст списка задач и интерактивную inline-клавиатуру действий."""
     sorted_tasks = app_state.get_sorted_active_tasks()
-
     if not sorted_tasks:
-        await message.answer("🎉 У вас нет активных задач! Отличная работа!")
-        return
+        text = "🎉 *У вас нет активных задач! Отличная работа!*"
+        builder = InlineKeyboardBuilder()
+        builder.button(text="➕ Добавить задачу", callback_data="add_task_start")
+        builder.button(text="🔄 Обновить", callback_data="refresh_list")
+        builder.adjust(2)
+        return text, builder.as_markup()
 
     response = "📋 *Список ваших активных задач (по приоритету):*\n\n"
     status_emoji = {TaskStatus.TODO: "📝 TODO", TaskStatus.DOING: "⚡ DOING"}
@@ -58,19 +59,52 @@ async def list_tasks(message: Message, db: DatabaseManager, app_state: BotState)
 
     builder = InlineKeyboardBuilder()
     for task in sorted_tasks:
-        builder.button(
-            text=f"✅ #{task.id} {task.subject[:12]}",
-            callback_data=f"complete_{task.id}",
-        )
-    builder.adjust(2)
+        if task.status == TaskStatus.DOING:
+            builder.button(text=f"📝 #{task.id} Todo", callback_data=f"task_todo_{task.id}")
+        else:
+            builder.button(text=f"⚡ #{task.id} В процесс", callback_data=f"task_doing_{task.id}")
 
-    await message.answer(response, parse_mode="Markdown", reply_markup=builder.as_markup())
+        builder.button(text=f"✅ #{task.id} Готово", callback_data=f"complete_{task.id}")
+        builder.button(text=f"🗑️ #{task.id}", callback_data=f"task_del_{task.id}")
+
+    builder.button(text="🔄 Обновить список", callback_data="refresh_list")
+    builder.button(text="➕ Новая задача", callback_data="add_task_start")
+
+    button_counts = [3] * len(sorted_tasks) + [2]
+    builder.adjust(*button_counts)
+
+    return response, builder.as_markup()
 
 
-@router.callback_query(F.data.startswith("complete_"))
+@router.message(Command("list"))
+async def list_tasks(message: Message, db: DatabaseManager, app_state: BotState):
+    db.register_user(message.chat.id)
+    text, markup = build_task_list_payload(app_state)
+    await message.answer(text, parse_mode="Markdown", reply_markup=markup)
+
+
+@router.callback_query(F.data == "refresh_list")
+async def process_refresh_callback(callback: CallbackQuery, app_state: BotState):
+    app_state.invalidate()
+    text, markup = build_task_list_payload(app_state)
+    try:
+        await callback.message.edit_text(text, parse_mode="Markdown", reply_markup=markup)
+        await callback.answer("🔄 Список обновлен!")
+    except Exception:
+        await callback.answer("ℹ️ Список актуален.")
+
+
+@router.callback_query(F.data == "add_task_start")
+async def process_add_task_callback(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await callback.message.answer("📝 Введите название предмета (например: Математика):")
+    await state.set_state(AddTaskStates.waiting_for_subject)
+
+
+@router.callback_query(F.data.startswith("complete_") | F.data.startswith("task_done_"))
 async def process_complete_callback(callback: CallbackQuery, db: DatabaseManager, app_state: BotState):
     try:
-        task_id = int(callback.data.split("_")[1])
+        task_id = int(callback.data.split("_")[-1])
     except (IndexError, ValueError):
         await callback.answer("❌ Ошибка при чтении ID задачи.")
         return
@@ -86,16 +120,90 @@ async def process_complete_callback(callback: CallbackQuery, db: DatabaseManager
 
     if db.update_task_status(task_id, TaskStatus.DONE):
         app_state.invalidate()
-        await callback.answer(f"✅ Задача '{task.subject[:20]}' выполнена!")
-        await callback.message.edit_text(
-            f"🎉 *Задача выполнена!*\n"
-            f"• Предмет: *{escape_md(task.subject)}*\n"
-            f"• Описание: _{escape_md(task.description)}_\n\n"
-            f"Отправьте команду /list, чтобы увидеть актуальный список.",
-            parse_mode="Markdown",
-        )
+        await callback.answer(f"✅ Задача #{task_id} выполнена!")
+        text, markup = build_task_list_payload(app_state)
+        try:
+            await callback.message.edit_text(text, parse_mode="Markdown", reply_markup=markup)
+        except Exception:
+            pass
     else:
         await callback.answer("❌ Не удалось завершить задачу.")
+
+
+@router.callback_query(F.data.startswith("task_doing_"))
+async def process_doing_callback(callback: CallbackQuery, db: DatabaseManager, app_state: BotState):
+    try:
+        task_id = int(callback.data.split("_")[-1])
+    except (IndexError, ValueError):
+        await callback.answer("❌ Ошибка при чтении ID задачи.")
+        return
+
+    task = db.get_task_by_id(task_id)
+    if not task:
+        await callback.answer("❌ Задача не найдена!")
+        return
+
+    if db.update_task_status(task_id, TaskStatus.DOING):
+        app_state.invalidate()
+        await callback.answer(f"⚡ Задача #{task_id} в процессе!")
+        text, markup = build_task_list_payload(app_state)
+        try:
+            await callback.message.edit_text(text, parse_mode="Markdown", reply_markup=markup)
+        except Exception:
+            pass
+    else:
+        await callback.answer("❌ Ошибка при изменении статуса.")
+
+
+@router.callback_query(F.data.startswith("task_todo_"))
+async def process_todo_callback(callback: CallbackQuery, db: DatabaseManager, app_state: BotState):
+    try:
+        task_id = int(callback.data.split("_")[-1])
+    except (IndexError, ValueError):
+        await callback.answer("❌ Ошибка при чтении ID задачи.")
+        return
+
+    task = db.get_task_by_id(task_id)
+    if not task:
+        await callback.answer("❌ Задача не найдена!")
+        return
+
+    if db.update_task_status(task_id, TaskStatus.TODO):
+        app_state.invalidate()
+        await callback.answer(f"📝 Задача #{task_id} переведена в TODO!")
+        text, markup = build_task_list_payload(app_state)
+        try:
+            await callback.message.edit_text(text, parse_mode="Markdown", reply_markup=markup)
+        except Exception:
+            pass
+    else:
+        await callback.answer("❌ Ошибка при изменении статуса.")
+
+
+@router.callback_query(F.data.startswith("task_del_"))
+async def process_delete_callback(callback: CallbackQuery, db: DatabaseManager, app_state: BotState):
+    try:
+        task_id = int(callback.data.split("_")[-1])
+    except (IndexError, ValueError):
+        await callback.answer("❌ Ошибка при чтении ID задачи.")
+        return
+
+    task = db.get_task_by_id(task_id)
+    if not task:
+        await callback.answer("❌ Задача не найдена!")
+        return
+
+    if db.delete_task(task_id):
+        app_state.invalidate()
+        await callback.answer(f"🗑️ Задача #{task_id} удалена!")
+        text, markup = build_task_list_payload(app_state)
+        try:
+            await callback.message.edit_text(text, parse_mode="Markdown", reply_markup=markup)
+        except Exception:
+            pass
+    else:
+        await callback.answer("❌ Ошибка при удалении задачи.")
+
 
 
 @router.message(Command("done"))

@@ -31,7 +31,13 @@ async def send_daily_reminders():
                 if overdue or today_tasks:
                     users = db.get_all_users()
                     if users:
+                        from aiogram.utils.keyboard import InlineKeyboardBuilder
+
                         response = "🔔 *Ежедневная сводка по учебным задачам:*\n\n"
+                        builder = InlineKeyboardBuilder()
+
+                        all_reminder_tasks = list(overdue) + [t for t in today_tasks if t not in overdue]
+
                         if overdue:
                             response += "🚨 *Просроченные задачи (сделайте в первую очередь!):*\n"
                             for task in overdue:
@@ -42,11 +48,18 @@ async def send_daily_reminders():
                             for task in today_tasks:
                                 response += f"• ID {task.id} | *{task.subject}* (сложность: {task.effort_score} ед.)\n"
 
+                        for task in all_reminder_tasks:
+                            builder.button(text=f"✅ #{task.id} {task.subject[:10]}", callback_data=f"complete_{task.id}")
+                        builder.adjust(2)
+
+                        markup = builder.as_markup() if all_reminder_tasks else None
+
                         for chat_id in users:
                             try:
-                                await bot.send_message(chat_id, response, parse_mode="Markdown")
+                                await bot.send_message(chat_id, response, parse_mode="Markdown", reply_markup=markup)
                             except TelegramAPIError as e:
                                 logger.warning(f"Error sending message to {chat_id}: {e}")
+
 
             # Автоматический еженедельный бэкап по воскресеньям в 10:00
             backup_key = f"{today_key}_backup"
