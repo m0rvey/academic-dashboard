@@ -24,6 +24,25 @@ from src.ui.views.workload_indicator import create_workload_indicator
 
 logger = setup_logger("views")
 
+# Исправление бага Flet 0.25.2 на Python 3.9 (isinstance(self.__icon, IconValue) выводит TypeError в Tab.before_update)
+try:
+    import flet.core.tabs
+    from flet.core.types import IconEnums
+
+    def _safe_tab_before_update(self):
+        super(flet.core.tabs.Tab, self).before_update()
+        icon_margin = getattr(self, "_Tab__icon_margin", None)
+        if icon_margin is not None:
+            self._set_attr_json("iconMargin", icon_margin)
+        icon = getattr(self, "_Tab__icon", None)
+        if icon is not None:
+            self._set_enum_attr("icon", icon, IconEnums)
+
+    flet.core.tabs.Tab.before_update = _safe_tab_before_update
+except Exception as _ex:
+    logger.warning(f"Failed to patch flet Tab.before_update: {_ex}")
+
+
 
 def run_gui(db: IDatabaseManager) -> None:
     """Запускает графический интерфейс приложения."""
