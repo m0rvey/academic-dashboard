@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import threading
 
 from aiogram import Dispatcher
 from aiogram.types import BotCommand
@@ -72,8 +73,6 @@ async def main_bot():
 
     await dp.start_polling(bot, handle_signals=False)
 
-
-import threading
 
 bot_thread = None
 bot_loop = None

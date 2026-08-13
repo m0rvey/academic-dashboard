@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 import flet as ft
-import pytest
 
 from src.ui.views import run_gui
 
@@ -21,43 +20,49 @@ def get_main_func(db):
 
 
 def test_smoke_ui(db):
-    main_func = get_main_func(db)
-    assert main_func is not None, "main function not found"
+    def fake_getenv(key, default=None):
+        if key == "TELEGRAM_BOT_TOKEN":
+            return "123456789:ABCdef"
+        if key == "TELEGRAM_ALLOWED_USERS":
+            return "123456789"
+        return default
 
-    page = MagicMock(spec=ft.Page)
-    page.overlay = []
-    page.session = MagicMock()
-    page.client_storage = MagicMock()
-    page.client_storage.get.return_value = None
+    with patch("os.getenv", side_effect=fake_getenv):
+        main_func = get_main_func(db)
+        assert main_func is not None, "main function not found"
 
-    def fake_open(dialog):
-        if dialog not in page.overlay:
-            page.overlay.append(dialog)
+        page = MagicMock(spec=ft.Page)
+        page.overlay = []
+        page.session = MagicMock()
+        page.client_storage = MagicMock()
+        page.client_storage.get.return_value = None
 
-    page.open = MagicMock(side_effect=fake_open)
+        def fake_open(dialog):
+            if dialog not in page.overlay:
+                page.overlay.append(dialog)
 
-    def fake_close(dialog):
-        if dialog in page.overlay:
-            page.overlay.remove(dialog)
+        page.open = MagicMock(side_effect=fake_open)
 
-    page.close = MagicMock(side_effect=fake_close)
+        def fake_close(dialog):
+            if dialog in page.overlay:
+                page.overlay.remove(dialog)
 
-    # Run the main UI startup
-    main_func(page)
+        # Run the main UI startup
+        main_func(page)
 
-    # Verify that the UI added elements
-    assert page.add.called
+        # Verify that the UI added elements
+        assert page.add.called
 
-    # Click Floating Action Button to open Add dialog
-    assert page.floating_action_button is not None
-    page.floating_action_button.on_click(None)
+        # Click Floating Action Button to open Add dialog
+        assert page.floating_action_button is not None
+        page.floating_action_button.on_click(None)
 
-    assert len(page.overlay) > 0
+        assert len(page.overlay) > 0
 
-    # Creating a task through the mocked UI callbacks
-    # The add_dialog should be in page.overlay
-    dialog = next((x for x in page.overlay if isinstance(x, ft.AlertDialog)), None)
-    assert dialog is not None, "Add dialog not found"
+        # Creating a task through the mocked UI callbacks
+        # The add_dialog should be in page.overlay
+        dialog = next((x for x in page.overlay if isinstance(x, ft.AlertDialog)), None)
+        assert dialog is not None, "Add dialog not found"
 
 
 def test_smoke_ui_setup_needed(db, tmp_path):
@@ -66,7 +71,7 @@ def test_smoke_ui_setup_needed(db, tmp_path):
 
     with patch("src.core.config.ENV_PATH", temp_env), \
          patch("os.getenv", return_value=""):
-        
+
         page = MagicMock(spec=ft.Page)
         page.overlay = []
         page.add = MagicMock()

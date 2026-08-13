@@ -13,7 +13,7 @@ def notify_mac(title: str, subtitle: str, message: str):
     msg_esc = message.replace('"', '\\"')
 
     script = f'display notification "{msg_esc}" with title "{title_esc}" subtitle "{sub_esc}" sound name "Glass"'
-    
+
     def run():
         try:
             subprocess.run(["osascript", "-e", script], capture_output=True)

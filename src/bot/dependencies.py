@@ -1,5 +1,4 @@
 import os
-import sys
 
 from aiogram import Bot
 from dotenv import load_dotenv

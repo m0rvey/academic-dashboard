@@ -1,4 +1,3 @@
-import asyncio
 
 from watchdog.events import FileSystemEventHandler
 

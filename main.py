@@ -3,6 +3,14 @@ import sys
 from datetime import date, datetime
 from typing import Optional
 
+from src.core.config import DAILY_LOAD_LIMIT, DB_PATH, MAX_EFFORT, MIN_EFFORT
+from src.core.database import DatabaseManager
+from src.core.interfaces import IDatabaseManager
+from src.core.logic import calculate_priority, check_daily_load, get_daily_load
+from src.core.models import Task, TaskStatus, get_clean_date
+from src.ui.views import run_gui
+
+
 # Глобальная политика циклов событий для предотвращения ошибок "There is no current event loop" в фоновых потоках (например, ThreadPoolExecutor в Flet)
 class GlobalEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
     def __init__(self):
@@ -20,60 +28,8 @@ class GlobalEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
                 self._loop = asyncio.new_event_loop()
             return self._loop
 
+
 asyncio.set_event_loop_policy(GlobalEventLoopPolicy())
-
-
-def _hide_dock_icon_macos() -> None:
-    """Скрывает иконку родительского Python-процесса из Dock на macOS через ctypes."""
-    import sys
-    if sys.platform != "darwin":
-        return
-    try:
-        import ctypes
-        from ctypes import util
-
-        objc_path = util.find_library('objc')
-        appkit_path = util.find_library('AppKit')
-        if not objc_path or not appkit_path:
-            return
-
-        objc = ctypes.cdll.LoadLibrary(objc_path)
-        appkit = ctypes.cdll.LoadLibrary(appkit_path)
-
-        objc.sel_registerName.restype = ctypes.c_void_p
-        objc.sel_registerName.argtypes = [ctypes.c_char_p]
-
-        objc.objc_getClass.restype = ctypes.c_void_p
-        objc.objc_getClass.argtypes = [ctypes.c_char_p]
-
-        objc.objc_msgSend.restype = ctypes.c_void_p
-        objc.objc_msgSend.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
-
-        ns_app_cls = objc.objc_getClass(b"NSApplication")
-        if not ns_app_cls:
-            return
-
-        sel_shared_app = objc.sel_registerName(b"sharedApplication")
-        shared_app = objc.objc_msgSend(ns_app_cls, sel_shared_app)
-        if not shared_app:
-            return
-
-        # Переопределяем сигнатуру для setActivationPolicy:
-        objc.objc_msgSend.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_longlong]
-        
-        sel_set_policy = objc.sel_registerName(b"setActivationPolicy:")
-        # 2 = NSApplicationActivationPolicyProhibited (скрывает иконку из Dock)
-        objc.objc_msgSend(shared_app, sel_set_policy, 2)
-    except Exception:
-        pass
-
-
-from src.core.config import DAILY_LOAD_LIMIT, DB_PATH, MAX_EFFORT, MIN_EFFORT
-from src.core.database import DatabaseManager
-from src.core.interfaces import IDatabaseManager
-from src.core.logic import calculate_priority, check_daily_load, get_daily_load
-from src.core.models import Task, TaskStatus, get_clean_date
-from src.ui.views import run_gui
 
 
 def print_menu() -> None:
@@ -291,9 +247,6 @@ def main() -> None:
             print("\n  Выход...")
             sys.exit(0)
     else:
-        # Скрываем иконку родительского Python-процесса из Dock на macOS, чтобы избежать зависания/дублирования иконки
-        _hide_dock_icon_macos()
-
         db = DatabaseManager(DB_PATH)
         db.init_db()
         run_gui(db)
