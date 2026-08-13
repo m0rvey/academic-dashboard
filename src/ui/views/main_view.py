@@ -27,6 +27,11 @@ logger = setup_logger("views")
 
 def run_gui(db: IDatabaseManager) -> None:
     """Запускает графический интерфейс приложения."""
+    from src.core.config import validate_env
+
+    if not validate_env(exit_on_error=True):
+        return
+
     db.rotate_local_backups()
 
     import sys
@@ -39,17 +44,8 @@ def run_gui(db: IDatabaseManager) -> None:
 
         from src.core.config import ENV_PATH
 
-        if not ENV_PATH.exists():
-            example_path = ENV_PATH.parent / ".env.example"
-            if example_path.exists():
-                try:
-                    import shutil
-                    shutil.copy(example_path, ENV_PATH)
-                    logger.info("Файл .env не найден. Создан шаблон .env из .env.example.")
-                except Exception as ex:
-                    logger.warning(f"Не удалось скопировать .env.example в .env: {ex}")
-
         load_dotenv(dotenv_path=ENV_PATH, override=True)
+
 
 
         def _open_debug_console(e=None):

@@ -67,22 +67,14 @@ def test_smoke_ui(db):
 
 def test_smoke_ui_without_env(db, tmp_path):
     temp_env = tmp_path / ".env"
-    main_func = get_main_func(db)
 
     with patch("src.core.config.ENV_PATH", temp_env), \
          patch("os.getenv", return_value=""):
 
-        page = MagicMock(spec=ft.Page)
-        page.overlay = []
-        page.add = MagicMock()
-        page.update = MagicMock()
+        main_func = get_main_func(db)
+        # When .env is missing or unconfigured, run_gui returns early and ft.app (main_func) is never called
+        assert main_func is None
 
-        main_func(page)
-
-        assert page.add.called
-        # Check that page added a Column representing the main dashboard layout
-        args, _ = page.add.call_args
-        assert isinstance(args[0], ft.Column)
 
 
 
