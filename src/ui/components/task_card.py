@@ -30,6 +30,8 @@ class TaskCard(ft.Container):
     def _get_indicator_color(self):
         if self.task.status == TaskStatus.DONE:
             return ft.Colors.GREY_500
+        elif self.task.status == TaskStatus.DOING:
+            return ft.Colors.AMBER_400
         elif self.priority >= 2.5:
             return ft.Colors.RED_ACCENT_400
         elif self.priority >= 1.5:
@@ -47,11 +49,35 @@ class TaskCard(ft.Container):
         )
 
         is_done = self.task.status == TaskStatus.DONE
+        is_doing = self.task.status == TaskStatus.DOING
         text_decor = ft.TextDecoration.LINE_THROUGH if is_done else None
         text_color = ft.Colors.GREY_400 if is_done else ft.Colors.WHITE
         desc_color = ft.Colors.GREY_600 if is_done else ft.Colors.GREY_300
 
-        tags_ui = []
+        # Отображение статуса задачи
+        if is_done:
+            status_badge = ft.Container(
+                content=ft.Text("✅ Готово", size=10, color=ft.Colors.GREEN_100, weight=ft.FontWeight.BOLD),
+                bgcolor=ft.Colors.GREEN_900,
+                padding=ft.padding.symmetric(horizontal=8, vertical=3),
+                border_radius=10,
+            )
+        elif is_doing:
+            status_badge = ft.Container(
+                content=ft.Text("⚡ В процессе", size=10, color=ft.Colors.AMBER_100, weight=ft.FontWeight.BOLD),
+                bgcolor=ft.Colors.AMBER_900,
+                padding=ft.padding.symmetric(horizontal=8, vertical=3),
+                border_radius=10,
+            )
+        else:
+            status_badge = ft.Container(
+                content=ft.Text("📝 TODO", size=10, color=ft.Colors.GREY_300, weight=ft.FontWeight.BOLD),
+                bgcolor=ft.Colors.GREY_800,
+                padding=ft.padding.symmetric(horizontal=8, vertical=3),
+                border_radius=10,
+            )
+
+        tags_ui = [status_badge]
         for t in self.task.tags:
             tags_ui.append(
                 ft.Container(
@@ -61,6 +87,27 @@ class TaskCard(ft.Container):
                     border_radius=10,
                 )
             )
+
+        status_dropdown = [
+            ft.Container(
+                content=ft.Dropdown(
+                    value=str(self.task.status.value),
+                    options=[
+                        ft.dropdown.Option("0", "📝 TODO"),
+                        ft.dropdown.Option("1", "⚡ В процессе"),
+                        ft.dropdown.Option("2", "✅ Готово"),
+                    ],
+                    width=135,
+                    text_size=11,
+                    content_padding=ft.padding.symmetric(horizontal=8, vertical=0),
+                    border_radius=8,
+                    border_color=ft.Colors.AMBER_700 if is_doing else ft.Colors.GREY_800,
+                    on_change=self._on_status_change,
+                ),
+                height=45,
+                width=135,
+            )
+        ]
 
         grade_dropdown = []
         if is_done:
@@ -174,6 +221,7 @@ class TaskCard(ft.Container):
                 ),
                 ft.Row(
                     [
+                        *status_dropdown,
                         *grade_dropdown,
                         ft.IconButton(
                             icon=ft.Icons.EDIT_OUTLINED,
@@ -188,7 +236,7 @@ class TaskCard(ft.Container):
                             on_click=lambda e: self.open_delete_confirm(self.task.id, self.task.subject),
                         ),
                     ],
-                    spacing=0,
+                    spacing=6,
                 ),
             ],
         )
@@ -214,9 +262,17 @@ class TaskCard(ft.Container):
         self.db.update_task_status(self.task.id, new_status)
         self.trigger_data_update()
 
+    def _on_status_change(self, e):
+        try:
+            new_status_val = int(e.control.value)
+            new_status = TaskStatus(new_status_val)
+            self.db.update_task_status(self.task.id, new_status)
+            self.trigger_data_update()
+        except Exception:
+            pass
+
     def _on_grade_change(self, e):
         grade_value = int(e.control.value) if e.control.value != "None" else None
         self.db.update_task_grade(self.task.id, grade_value)
-        # Оценка меняется внутри карточки - можно было бы сделать self.update()
-        # Но изменение оценки влияет на графики во вкладке "Успеваемость"
         self.trigger_data_update()
+

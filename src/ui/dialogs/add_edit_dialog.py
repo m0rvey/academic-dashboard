@@ -82,6 +82,17 @@ def create_add_edit_dialog(page: ft.Page, db, show_snack, refresh_all):
         ),
     )
 
+    status_dropdown = ft.Dropdown(
+        label="Статус задачи",
+        value="0",
+        options=[
+            ft.dropdown.Option("0", "📝 TODO (Сделать)"),
+            ft.dropdown.Option("1", "⚡ DOING (В процессе)"),
+            ft.dropdown.Option("2", "✅ DONE (Выполнено)"),
+        ],
+        border_color=ft.Colors.GREY_700,
+    )
+
     active_dialog = None
 
     def save_task(e):
@@ -107,6 +118,7 @@ def create_add_edit_dialog(page: ft.Page, db, show_snack, refresh_all):
         tags = [t.strip() for t in tags_str.split(",") if t.strip()]
         deadline = deadline_btn.text
         effort = int(effort_slider.value)
+        status = TaskStatus(int(status_dropdown.value))
 
         task = Task(
             subject=subject,
@@ -114,14 +126,13 @@ def create_add_edit_dialog(page: ft.Page, db, show_snack, refresh_all):
             deadline=deadline,
             effort_score=effort,
             tags=tags,
-            status=TaskStatus.TODO,
+            status=status,
         )
 
         if editing_task_id is not None:
             task.id = editing_task_id
             old_task = next((t for t in db.get_all_tasks() if t.id == task.id), None)
             if old_task:
-                task.status = old_task.status
                 task.grade = old_task.grade
             db.update_task(task)
             show_snack("✅ Задача успешно обновлена!")
@@ -141,6 +152,7 @@ def create_add_edit_dialog(page: ft.Page, db, show_snack, refresh_all):
                 [
                     subject_field,
                     desc_field,
+                    status_dropdown,
                     ft.Row(
                         [ft.Text("Дедлайн:", weight=ft.FontWeight.W_500), deadline_btn],
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -178,6 +190,8 @@ def create_add_edit_dialog(page: ft.Page, db, show_snack, refresh_all):
         desc_field.error_text = None
         desc_field.border_color = ft.Colors.GREY_700
 
+        status_dropdown.value = str(task.status.value)
+
         try:
             deadline_date = datetime.strptime(task.deadline[:10], "%Y-%m-%d")
         except (ValueError, TypeError, IndexError):
@@ -205,6 +219,8 @@ def create_add_edit_dialog(page: ft.Page, db, show_snack, refresh_all):
         desc_field.error_text = None
         desc_field.border_color = ft.Colors.GREY_700
 
+        status_dropdown.value = "0"
+
         tags_field.value = ""
         effort_slider.value = float(MIN_EFFORT)
         update_slider_label(None)
@@ -217,3 +233,4 @@ def create_add_edit_dialog(page: ft.Page, db, show_snack, refresh_all):
         page.open(dialog)
 
     return None, open_add_dialog, open_edit_dialog
+

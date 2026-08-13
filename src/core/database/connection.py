@@ -19,11 +19,15 @@ class DatabaseConnection:
     def notify_change(self) -> None:
         """Обновляет время изменения базы данных с помощью файла-триггера."""
         try:
+            import time
+
             trigger_path = self.db_path.parent / ".db_change"
             trigger_path.parent.mkdir(parents=True, exist_ok=True)
-            trigger_path.touch(exist_ok=True)
+            with open(trigger_path, "w", encoding="utf-8") as f:
+                f.write(str(time.time()))
         except OSError as e:
             logger.warning(f"Error in notify_change: {e}")
+
 
     @contextmanager
     def connection(self):
