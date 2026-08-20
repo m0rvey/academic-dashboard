@@ -1,18 +1,12 @@
-import asyncio
 import json
-import os
-import tempfile
 import threading
 from datetime import date
-from pathlib import Path
-import pytest
-from aiogram.types import InlineKeyboardMarkup
 
-from src.core.nlp_parser import DeadlineParser, parse_natural_language_task
+from src.bot.handlers.tasks import build_task_list_payload
+from src.bot.state import BotState
 from src.core.database import DatabaseManager
 from src.core.models import Task, TaskStatus
-from src.bot.state import BotState
-from src.bot.handlers.tasks import build_task_list_payload
+from src.core.nlp_parser import DeadlineParser, parse_natural_language_task
 
 
 class TestAcademicDashboardAdversarial:
@@ -25,11 +19,11 @@ class TestAcademicDashboardAdversarial:
         are safely capped without throwing OverflowError.
         """
         malicious_input = "сдать курсовую через 9999999999999999999999999999 дней"
-        
+
         # Must NOT raise OverflowError now
         cleaned_text, deadline = DeadlineParser().parse(malicious_input)
         assert deadline is not None
-        
+
         parsed = parse_natural_language_task(malicious_input)
         assert parsed is not None
         assert parsed["deadline"] is not None
@@ -59,10 +53,10 @@ class TestAcademicDashboardAdversarial:
 
         app_state.invalidate()
         text, markup = build_task_list_payload(app_state)
-        
+
         total_buttons = sum(len(row) for row in markup.inline_keyboard)
         print(f"\n[FIXED] Generated {total_buttons} buttons for 35 tasks (Telegram Limit: 100). Safe!")
-        
+
         TELEGRAM_MAX_BUTTONS = 100
         assert total_buttons <= TELEGRAM_MAX_BUTTONS
         assert total_buttons == 77  # 3 * 25 + 2 controls
@@ -96,12 +90,14 @@ class TestAcademicDashboardAdversarial:
         # Import should sanitize fields
         db._backup_mgr.import_from_json(str(json_path))
         all_tasks = db.get_all_tasks()
-        
+
         assert len(all_tasks) == 1
         assert len(all_tasks[0].subject) <= 255
         assert len(all_tasks[0].description) <= 2000
         assert len(all_tasks[0].tags) <= 30
-        print(f"\n[FIXED] Unbounded JSON safely clamped: subject={len(all_tasks[0].subject)} chars, desc={len(all_tasks[0].description)} chars, tags={len(all_tasks[0].tags)}")
+        print(
+            f"\n[FIXED] Unbounded JSON safely clamped: subject={len(all_tasks[0].subject)} chars, desc={len(all_tasks[0].description)} chars, tags={len(all_tasks[0].tags)}"
+        )
 
     def test_mitigation_4_bot_state_thread_safety(self, tmp_path):
         """
@@ -115,4 +111,4 @@ class TestAcademicDashboardAdversarial:
 
         assert hasattr(app_state, "_lock")
         assert isinstance(app_state._lock, type(threading.Lock()))
-        print(f"\n[FIXED] BotState mutex lock verified.")
+        print("\n[FIXED] BotState mutex lock verified.")

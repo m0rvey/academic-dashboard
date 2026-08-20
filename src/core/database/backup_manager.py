@@ -1,6 +1,6 @@
 import json
 import sqlite3
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 from src.core.config import MAX_BACKUPS
@@ -94,7 +94,7 @@ class BackupManager:
             raw_subject = str(item.get("subject", "")).strip()[:255]
             raw_description = str(item.get("description", "")).strip()[:2000]
             raw_deadline = str(item.get("deadline", "")).strip()[:20]
-            
+
             raw_tags = item.get("tags", [])
             if not isinstance(raw_tags, list):
                 raw_tags = []
