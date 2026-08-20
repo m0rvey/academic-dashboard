@@ -19,10 +19,13 @@ academic-dashboard/
 │   ├── planner.db                   # SQLite база данных в режиме WAL
 │   ├── app.log                      # Ротируемый лог приложения
 │   └── backups/                     # Резервные копии БД
-├── docs/                            # Дополнительная документация
-│   ├── README.md                    # Русская документация
+├── docs/                            # Документация проекта
+│   ├── README.md                    # Русская документация (Основная)
 │   ├── README_EN.md                 # English documentation
-│   └── README_RU.md                 # Русская документация
+│   ├── CODE_DOCUMENTATION.md        # Архитектура и спецификация
+│   ├── CONTRIBUTING.md              # Гайд для контрибьюторов
+│   ├── DESIGN_PHILOSOPHY.md         # Философия и математические модели
+│   └── CODE_OF_CONDUCT.md           # Кодекс поведения сообщества
 ├── src/                             # Исходный код приложения
 │   ├── bot/                         # Подсистема Telegram-бота (Aiogram 3)
 │   │   ├── handlers/                # Обработчики сообщений и callback-кнопок
