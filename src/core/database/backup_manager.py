@@ -45,14 +45,23 @@ class BackupManager:
         if not path.exists():
             raise FileNotFoundError(f"Файл бэкапа не найден по пути: {filepath}")
 
+        MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+        if path.stat().st_size > MAX_IMPORT_FILE_SIZE:
+            raise ValueError(f"Размер файла превышает допустимый лимит ({MAX_IMPORT_FILE_SIZE} байт)")
+
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         if not isinstance(data, list):
             raise ValueError("Неверный формат данных JSON: ожидается список задач.")
 
+        MAX_IMPORT_TASKS = 5000
+        data = data[:MAX_IMPORT_TASKS]
+
         imported_any = False
         for item in data:
+            if not isinstance(item, dict):
+                continue
             if not all(
                 k in item
                 for k in (
@@ -82,12 +91,26 @@ class BackupManager:
                 except (ValueError, TypeError):
                     grade_val = None
 
+            raw_subject = str(item.get("subject", "")).strip()[:255]
+            raw_description = str(item.get("description", "")).strip()[:2000]
+            raw_deadline = str(item.get("deadline", "")).strip()[:20]
+            
+            raw_tags = item.get("tags", [])
+            if not isinstance(raw_tags, list):
+                raw_tags = []
+            sanitized_tags = [str(t).strip()[:50] for t in raw_tags if str(t).strip()][:30]
+
+            try:
+                effort = max(1, min(10, int(item.get("effort_score", 1))))
+            except (ValueError, TypeError):
+                effort = 1
+
             task = Task(
-                subject=str(item["subject"]),
-                description=str(item["description"]),
-                deadline=str(item["deadline"]),
-                effort_score=max(1, int(item["effort_score"])),
-                tags=[str(t).strip() for t in item.get("tags", []) if str(t).strip()],
+                subject=raw_subject if raw_subject else "Без предмета",
+                description=raw_description if raw_description else "Без описания",
+                deadline=raw_deadline if raw_deadline else date.today().isoformat(),
+                effort_score=effort,
+                tags=sanitized_tags,
                 status=status,
                 grade=grade_val,
             )

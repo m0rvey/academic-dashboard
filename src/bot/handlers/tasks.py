@@ -43,10 +43,13 @@ def build_task_list_payload(app_state: BotState):
         builder.adjust(2)
         return text, builder.as_markup()
 
+    max_display_tasks = 25
+    display_tasks = sorted_tasks[:max_display_tasks]
+
     response = "📋 *Список активных задач (по приоритету):*\n\n"
     status_emoji = {TaskStatus.TODO: "📝", TaskStatus.DOING: "⚡"}
 
-    for idx, task in enumerate(sorted_tasks, start=1):
+    for idx, task in enumerate(display_tasks, start=1):
         priority = calculate_priority(task)
         tags_str = f" `[{', '.join(task.tags)}]`" if task.tags else ""
         escaped_subj = escape_md(task.subject)
@@ -58,8 +61,11 @@ def build_task_list_payload(app_state: BotState):
             f"   📅 *Дедлайн:* {task.deadline} | 💪 *Сложность:* {task.effort_score} | 🌟 *Приоритет:* {priority:.2f}\n\n"
         )
 
+    if len(sorted_tasks) > max_display_tasks:
+        response += f"ℹ️ _Показаны первые {max_display_tasks} из {len(sorted_tasks)} задач._\n\n"
+
     builder = InlineKeyboardBuilder()
-    for idx, task in enumerate(sorted_tasks, start=1):
+    for idx, task in enumerate(display_tasks, start=1):
         if task.status == TaskStatus.DOING:
             builder.button(text=f"📝 #{idx} Todo", callback_data=f"task_todo_{task.id}")
         else:
@@ -71,7 +77,7 @@ def build_task_list_payload(app_state: BotState):
     builder.button(text="🔄 Обновить список", callback_data="refresh_list")
     builder.button(text="➕ Новая задача", callback_data="add_task_start")
 
-    button_counts = [3] * len(sorted_tasks) + [2]
+    button_counts = [3] * len(display_tasks) + [2]
     builder.adjust(*button_counts)
 
     return response, builder.as_markup()
@@ -418,7 +424,12 @@ async def handle_natural_language_message(message: Message, state: FSMContext, d
 
     db.register_user(message.chat.id)
 
-    parsed = parse_natural_language_task(message.text)
+    try:
+        parsed = parse_natural_language_task(message.text)
+    except Exception as e:
+        logger.warning(f"Error parsing natural language input: {e}")
+        parsed = None
+
     if not parsed:
         await message.answer(
             "ℹ️ Я не смог распознать задачу в вашем сообщении.\n"

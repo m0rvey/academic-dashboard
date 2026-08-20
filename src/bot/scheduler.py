@@ -48,7 +48,7 @@ async def send_daily_reminders():
                         for idx, task in enumerate(today_tasks, start=offset + 1):
                             response += f"*{idx}.* *{escape_md(task.subject)}* (сложность: {task.effort_score} ед.)\n"
 
-                    for idx, task in enumerate(all_reminder_tasks, start=1):
+                    for idx, task in enumerate(all_reminder_tasks[:25], start=1):
                         builder.button(text=f"✅ {idx}. {task.subject[:12]}", callback_data=f"complete_{task.id}")
                     builder.adjust(2)
 

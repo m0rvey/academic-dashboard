@@ -89,10 +89,13 @@ class DeadlineParser(BaseParser):
 
         in_days_match = re.search(r"\bчерез\s+(\d+)\s+(дн|нед)", text_lower)
         if in_days_match:
-            count = int(in_days_match.group(1))
-            unit = in_days_match.group(2)
-            days_to_add = count * 7 if unit.startswith("нед") else count
-            deadline = (date.today() + timedelta(days=days_to_add)).isoformat()
+            try:
+                count = min(int(in_days_match.group(1)), 3650)
+                unit = in_days_match.group(2)
+                days_to_add = count * 7 if unit.startswith("нед") else count
+                deadline = (date.today() + timedelta(days=days_to_add)).isoformat()
+            except (OverflowError, ValueError):
+                deadline = (date.today() + timedelta(days=1)).isoformat()
             text = text[: in_days_match.start()] + text[in_days_match.end() :]
             return text.strip(), deadline
 
@@ -137,7 +140,10 @@ class DeadlineParser(BaseParser):
                     days_ahead += 7
                 if "следующ" in match.group(0):
                     days_ahead += 7
-                deadline = (today + timedelta(days_ahead)).isoformat()
+                try:
+                    deadline = (today + timedelta(days=days_ahead)).isoformat()
+                except (OverflowError, ValueError):
+                    deadline = (date.today() + timedelta(days=1)).isoformat()
                 text = text[: match.start()] + text[match.end() :]
                 return text.strip(), deadline
 
@@ -229,42 +235,45 @@ class DescriptionCleaner(BaseParser):
 
 
 def parse_natural_language_task(text: str) -> Optional[Dict[str, Any]]:
-    if not text.strip():
+    if not text or not text.strip():
         return None
 
-    orig_text = text
-    text, effort = EffortParser().parse(text)
-    text, deadline = DeadlineParser().parse(text)
-    text, subject = SubjectParser().parse(text)
-    text, tags = TagsParser().parse(text)
-    text, _ = DescriptionCleaner().parse(text)
+    try:
+        orig_text = text
+        text, effort = EffortParser().parse(text)
+        text, deadline = DeadlineParser().parse(text)
+        text, subject = SubjectParser().parse(text)
+        text, tags = TagsParser().parse(text)
+        text, _ = DescriptionCleaner().parse(text)
 
-    if not subject:
-        words = re.findall(r"\b[a-zA-Zа-яА-ЯёЁ]+\b", orig_text)
-        cleaned_words = [
-            w for w in words if w.lower() not in ("запиши", "добавь", "домашка", "задача", "задачу", "на", "в", "во")
-        ]
-        if cleaned_words:
-            first_w = cleaned_words[0]
-            for prefix, subj_name in SUBJECTS_MAP.items():
-                if first_w.lower().startswith(prefix):
-                    subject = subj_name
-                    break
-            if not subject:
-                subject = first_w.capitalize()
-                text = re.sub(rf"\b{first_w}\b", "", text, count=1, flags=re.IGNORECASE).strip()
-        else:
-            subject = "Другое"
+        if not subject:
+            words = re.findall(r"\b[a-zA-Zа-яА-ЯёЁ]+\b", orig_text)
+            cleaned_words = [
+                w for w in words if w.lower() not in ("запиши", "добавь", "домашка", "задача", "задачу", "на", "в", "во")
+            ]
+            if cleaned_words:
+                first_w = cleaned_words[0]
+                for prefix, subj_name in SUBJECTS_MAP.items():
+                    if first_w.lower().startswith(prefix):
+                        subject = subj_name
+                        break
+                if not subject:
+                    subject = first_w.capitalize()
+                    text = re.sub(rf"\b{first_w}\b", "", text, count=1, flags=re.IGNORECASE).strip()
+            else:
+                subject = "Другое"
 
-    text = re.sub(r"\s+", " ", text).strip()
-    text = re.sub(r"^[:,\-\s]+|[:,\-\s]+$", "", text).strip()
+        text = re.sub(r"\s+", " ", text).strip()
+        text = re.sub(r"^[:,\-\s]+|[:,\-\s]+$", "", text).strip()
 
-    description = text if text else "Выполнить задание"
+        description = text if text else "Выполнить задание"
 
-    return {
-        "subject": subject,
-        "description": description.capitalize(),
-        "deadline": deadline,
-        "effort_score": effort,
-        "tags": tags,
-    }
+        return {
+            "subject": subject,
+            "description": description.capitalize(),
+            "deadline": deadline,
+            "effort_score": effort,
+            "tags": tags,
+        }
+    except Exception:
+        return None

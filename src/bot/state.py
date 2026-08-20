@@ -1,3 +1,4 @@
+import threading
 from typing import Dict, List, Optional
 
 from src.core.database import DatabaseManager
@@ -9,10 +10,11 @@ logger = setup_logger("bot_state")
 
 
 class BotState:
-    """Кэшированное состояние для Telegram-бота. Анолог AppState для GUI."""
+    """Кэшированное состояние для Telegram-бота. Аналог AppState для GUI."""
 
     def __init__(self, db: DatabaseManager):
         self.db = db
+        self._lock = threading.Lock()
         self._active_tasks: Optional[List[Task]] = None
         self._kpi_cache: Dict[str, dict] = {}
         self._grades_cache: Optional[dict] = None
@@ -20,30 +22,35 @@ class BotState:
 
     def invalidate(self) -> None:
         """Сбрасывает весь кэш. Вызывать после изменений данных."""
-        self._active_tasks = None
-        self._kpi_cache.clear()
-        self._grades_cache = None
-        self._subject_gpa_cache = None
+        with self._lock:
+            self._active_tasks = None
+            self._kpi_cache.clear()
+            self._grades_cache = None
+            self._subject_gpa_cache = None
 
     def get_active_tasks(self) -> List[Task]:
-        if self._active_tasks is None:
-            self._active_tasks = self.db.get_active_tasks()
-        return self._active_tasks
+        with self._lock:
+            if self._active_tasks is None:
+                self._active_tasks = self.db.get_active_tasks()
+            return self._active_tasks
 
     def get_kpi_stats(self, period: str = "all") -> dict:
-        if period not in self._kpi_cache:
-            self._kpi_cache[period] = self.db.get_kpi_stats(period)
-        return self._kpi_cache[period]
+        with self._lock:
+            if period not in self._kpi_cache:
+                self._kpi_cache[period] = self.db.get_kpi_stats(period)
+            return self._kpi_cache[period]
 
     def get_grades_stats(self) -> dict:
-        if self._grades_cache is None:
-            self._grades_cache = self.db.get_grades_stats()
-        return self._grades_cache
+        with self._lock:
+            if self._grades_cache is None:
+                self._grades_cache = self.db.get_grades_stats()
+            return self._grades_cache
 
     def get_subject_grades_gpa(self) -> dict:
-        if self._subject_gpa_cache is None:
-            self._subject_gpa_cache = self.db.get_subject_grades_gpa()
-        return self._subject_gpa_cache
+        with self._lock:
+            if self._subject_gpa_cache is None:
+                self._subject_gpa_cache = self.db.get_subject_grades_gpa()
+            return self._subject_gpa_cache
 
     def get_sorted_active_tasks(self) -> List[Task]:
         """Возвращает активные задачи, отсортированные по приоритету (кэшируется)."""
